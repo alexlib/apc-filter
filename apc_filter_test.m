@@ -4,7 +4,12 @@
 clear
 
 
-num_trials = 100;
+num_trials = 200;
+
+% Number of corresponding regions
+num_regions_eq = 10;
+num_regions_neq = 1000;
+
 % 
 
 % Image dimensions
@@ -18,7 +23,7 @@ sx_lb = -10;
 sx_ub = 10;
 
 sx_bulk_dist = (sx_ub - sx_lb) * rand(num_trials, 1) + sx_lb;
-sx_bulk_dist = 5 * ones(num_trials, 1);
+% sx_bulk_dist = 5 * ones(num_trials, 1);
 
 % sx_bulk_dist = linspace(1, 10, num_trials);
 
@@ -27,21 +32,17 @@ fSize = 12;
 
 do_ncc = 1;
 
-% Number of corresponding regions
-num_regions_eq = 10;
-num_regions_neq = 1000;
 
 
 % Window size
-window_fraction = 0.5 * [1, 1];
-
+window_fraction = 0.4 * [1, 1];
 
 % Bulk displacements (std dev)
 sx_bulk_std = 0;
 sy_bulk_std = 0;
 
 % Random displacements
-s_rand = 1;
+s_rand = 2.0;
 sx_rand = s_rand;
 sy_rand = s_rand;
 
@@ -171,14 +172,13 @@ for k = 1 : num_regions_neq
 
 end
 
-
-
 % Normalize the particle shape by the number of regions
 particle_shape_norm = particle_shape_sum / (num_regions_neq - num_regions_eq);
 
 % This should be the average of:
 % ncc_norm = A * N^2 * Pu
-% ncc_norm =  ncc_sum / num_regions_neq;
+
+% % % % This line works
 ncc_norm = ncc_sum ./ max(ncc_sum(:));
 
 cc_sum = zeros(region_height, region_width) + ...
@@ -251,7 +251,10 @@ for k = 1 : num_regions_eq
     cc_cur_max(k) = max(real(cc_cur(:)));
 
     % Ensemble corresponding correlation
+% % % % %     % This line works
     cc_sum = cc_sum + cc_cur ./ particle_shape_norm - (N^2 - N) * (ncc_norm ./ particle_shape_norm);
+
+%     cc_sum = cc_sum + cc_cur ./ particle_shape_norm - (N^2 - N) * (ncc_norm);
 
     cc_abs_sum = cc_abs_sum + (abs(cc_sum)).^2;
 
@@ -266,13 +269,42 @@ g(:, :, r) = cc_abs_sum;
 
 end
 
-for k = 1 : size(g, 3);
-    
-    g_plot = g(:, :, k);
-    
-    surf(g_plot ./ max(g_plot(:))); 
-    drawnow; 
-end;
+% for k = 1 : 1 : size(g, 3);
+%     
+%     g_plot = g(:, :, k);
+%     
+%     surf(g_plot ./ max(g_plot(:))); 
+%     drawnow; 
+% end;
+
+[A, sy, sx, YC, XC, B, ARRAY] = fit_gaussian_2D(cc_abs_sum_sqrt, 25 * [1, 1]);
+
+fprintf(1, 'stdx = %0.2f, stdy = %0.2f\n', sx, sy);
+
+xv = (1 : region_width);
+yv = (1 : region_height);
+
+[X, Y] = meshgrid(xv, yv);
+
+Z = exp(-(X - xc).^2 / (2 * sx^2)) .* exp(-(Y - yc).^2 / (2 * sy^2));
+
+cc_abs_shift = abs(cc_abs_sum_sqrt - B);
+
+subplot(1, 2, 1);
+surf(cc_abs_shift ./ max(cc_abs_shift(:)));
+xlim([1, region_width]);
+ylim([1, region_height]);
+zlim([0, 1.1]);
+axis square;
+set(gca, 'view', [0, 0]);
+
+subplot(1, 2, 2);
+surf(Z);
+xlim([1, region_width]);
+ylim([1, region_height]);
+zlim([0, 1.1]);
+axis square;
+set(gca, 'view', [0, 0]);
 
 % % Plot
 % subplot(1, 2, 1);
