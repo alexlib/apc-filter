@@ -58,7 +58,7 @@ d_mean = 1 * sqrt(8) ;
 particle_concentration = 1E-2;
 
 % Image noise
-noise_std = 1E-2;
+noise_std = 1E-3;
 
 % Particle positions buffer
 x_buffer = -100;
@@ -156,27 +156,14 @@ for k = 1 : num_regions_neq
     
     % Sum
     ncc_sum = ncc_sum + ncc_cur;
-  
-    
+   
     % Sum particle shape
     particle_shape_sum = particle_shape_sum + particle_shape_cur;
-    
-%     % Plot
-%     surf(abs(particle_shape_sum) ./ max(abs(particle_shape_sum(:))));
-%     xlim([1, region_width]);
-%     ylim([1, region_height]);
-%     
-%     pause(0.1);
-
-
 
 end
 
 % Normalize the particle shape by the number of regions
 particle_shape_norm = particle_shape_sum / (num_regions_neq - num_regions_eq);
-
-% This should be the average of:
-% ncc_norm = A * N^2 * Pu
 
 % % % % This line works
 ncc_norm = ncc_sum ./ max(ncc_sum(:));
@@ -204,11 +191,10 @@ cc_sum = zeros(region_height, region_width) + ...
     sx_bulk = sx_bulk_dist(r);
     sy_bulk = 0;
 
+    gm = zeros(num_regions_eq, 1);
+    
 % Do the corresponding correlation
 for k = 1 : num_regions_eq
-
-    % Inform the user
-%         fprintf(1, 'CCC %d of %d\n', k, num_regions_eq);
 
     % Particle diameters
     dp_eq       = d_mean + d_std * randn(num_particles, 1);
@@ -250,22 +236,22 @@ for k = 1 : num_regions_eq
 
     cc_cur_max(k) = max(real(cc_cur(:)));
 
+    % Corrected ccc
+    cc_eq = cc_cur ./ particle_shape_norm - (N^2 - N) * (ncc_norm ./ particle_shape_norm);
+    
     % Ensemble corresponding correlation
-% % % % %     % This line works
-    cc_sum = cc_sum + cc_cur ./ particle_shape_norm - (N^2 - N) * (ncc_norm ./ particle_shape_norm);
-
-%     cc_sum = cc_sum + cc_cur ./ particle_shape_norm - (N^2 - N) * (ncc_norm);
-
-    cc_abs_sum = cc_abs_sum + (abs(cc_sum)).^2;
+    % This line works
+    cc_sum = cc_sum + cc_eq;
 
 end
-    
-    
 
+% Add the sum of that trial to the sum-over-trials.
+% This means we're taking the magnitude after summing.
+cc_abs_sum = cc_abs_sum + (abs(cc_sum)).^2;
 
+% Square root
 cc_abs_sum_sqrt = sqrt(cc_abs_sum);
 
-g(:, :, r) = cc_abs_sum;
 
 end
 
