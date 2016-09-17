@@ -58,8 +58,8 @@ d_mean = 1 * sqrt(8) ;
 particle_concentration = 1E-2;
 
 % Image noise
-noise_std = 3E-3;
-noise_std = 0;
+noise_std = 3E-2;
+% noise_std = 0;
 
 % Particle positions buffer
 x_buffer = -100;
@@ -236,6 +236,13 @@ for k = 1 : num_regions_eq
     % Transforms
     F1_eq = fft2(g_win .* region_eq_01);
     F2_eq = fft2(g_win .* region_eq_02);
+    
+    % Auto correlations
+    ac_01 = fftshift(F1_eq .* conj(F1_eq));
+    ac_02 = fftshift(F2_eq .* conj(F2_eq));
+    
+    % Average auto correlation
+    ac_mean = (ac_01 + ac_02) / 2;
 
     % Cross correlation
     cc_cur = fftshift(F1_eq .* conj(F2_eq));
@@ -243,10 +250,25 @@ for k = 1 : num_regions_eq
     % Effective number of particles in the CCC
     N = sqrt(max(real(cc_cur(:))));
     
+    % Divide auto correlation by particle shape
+    ac_mean_div = ac_mean ./ particle_shape_norm;
+    
+    % Eff number of particles in the AC
+    M = sqrt(max(real(ac_mean(:))));
+    
+    ac_sub = (ac_mean_div) / (M^2 - M);
+    
+    % Correct the CCC
+    cc_eq = cc_cur ./ particle_shape_norm - (M^2 - M) / (N^2 - N) * ac_sub;
+    
     % Corrected ccc
 % %     % TLW
 %     cc_eq = cc_cur ./ particle_shape_norm - (N^2 - N) * (ncc_norm ./ particle_shape_norm);
-    cc_eq = cc_cur ./ particle_shape_norm - (ncc_norm ./ particle_shape_norm);
+%     cc_eq = cc_cur ./ particle_shape_norm - (ncc_norm ./ particle_shape_norm);
+
+%       cc_eq = (cc_cur - ac_mean) / (particle_shape_norm * N) + 1;
+      
+      
     
     % Ensemble corresponding correlation
     % This line works
@@ -286,51 +308,24 @@ yv = (1 : region_height);
 Z = exp(-(X - xc).^2 / (2 * sx^2)) .* exp(-(Y - yc).^2 / (2 * sy^2));
 
 cc_abs_shift = abs(cc_abs_sum_sqrt - B);
-
-subplot(1, 2, 1);
-surf(cc_abs_shift ./ max(cc_abs_shift(:)));
-xlim([1, region_width]);
-ylim([1, region_height]);
-zlim([0, 1.1]);
-axis square;
-set(gca, 'view', [0, 0]);
-
-subplot(1, 2, 2);
-surf(Z);
-xlim([1, region_width]);
-ylim([1, region_height]);
-zlim([0, 1.1]);
-axis square;
-set(gca, 'view', [0, 0]);
-
-colormap jet
-
-% % Plot
+% 
 % subplot(1, 2, 1);
-% surf(real(cc_sum) ./ max(real(cc_sum(:))));
-% set(gca, 'view', [0, 0]);
-% axis square
+% surf(cc_abs_shift ./ max(cc_abs_shift(:)));
 % xlim([1, region_width]);
 % ylim([1, region_height]);
-% zlim(1.05 * [-1, 1]);
-% title({'Ensemble CCC' , sprintf('$\\Delta s = %0.1f, \\sigma_s = %0.1f$', ...
-%     sx_bulk_mean, sx_rand)}, 'interpreter', 'latex', 'fontsize', 16);
+% zlim([0, 1.1]);
+% axis square;
+% set(gca, 'view', [0, 0]);
 % 
-% 
-% % Plot
 % subplot(1, 2, 2);
-% surf(real(cc_abs_sum_sqrt) ./ max(cc_abs_sum_sqrt(:)));
-% set(gca, 'view', [0, 0]);
-% axis square
+% surf(Z);
 % xlim([1, region_width]);
 % ylim([1, region_height]);
-% zlim(1.05 * [0, 1]);
-% title({'Ensemble CCC mag' , sprintf('$\\Delta s = %0.1f, \\sigma_s = %0.1f$', ...
-%     sx_bulk_mean, sx_rand)}, 'interpreter', 'latex', 'fontsize', 16);
+% zlim([0, 1.1]);
+% axis square;
+% set(gca, 'view', [0, 0]);
 % 
-% print(1, '-dpng', '-r200', sprintf('~/Desktop/figures_04/fig_sx_%0.2f.png', sx_bulk));
-
-
+% colormap jet
 
 
 

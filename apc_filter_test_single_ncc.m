@@ -4,10 +4,10 @@
 clear
 
 
-num_trials = 20;
+num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 50;
+num_regions_eq = 10;
 num_regions_neq = 1000;
 
 % 
@@ -23,7 +23,7 @@ sx_lb = -10;
 sx_ub = 10;
 
 % sx_bulk_dist = (sx_ub - sx_lb) * rand(num_trials, 1) + sx_lb;
-sx_bulk_dist = 3 * ones(num_trials, 1);
+sx_bulk_dist = 5 * ones(num_trials, 1);
 
 % sx_bulk_dist = linspace(1, 10, num_trials);
 
@@ -35,14 +35,14 @@ do_ncc = 1;
 
 
 % Window size
-window_fraction = 0.4 * [1, 1];
+window_fraction = 0.5 * [1, 1];
 
 % Bulk displacements (std dev)
 sx_bulk_std = 0;
 sy_bulk_std = 0;
 
 % Random displacements
-s_rand = 0.2;
+s_rand = 1;
 sx_rand = s_rand;
 sy_rand = s_rand;
 
@@ -58,8 +58,7 @@ d_mean = 1 * sqrt(8) ;
 particle_concentration = 1E-2;
 
 % Image noise
-noise_std = 3E-3;
-noise_std = 0;
+noise_std = 1E-3;
 
 % Particle positions buffer
 x_buffer = -100;
@@ -98,6 +97,7 @@ ncc_sum = zeros(region_height, region_width) + 1i * zeros(region_height, region_
 
 ncc_cur_max = zeros(num_regions_neq, 1);
 
+ 
 % Loop over the NCC
 for k = 1 : num_regions_neq
 
@@ -163,21 +163,29 @@ for k = 1 : num_regions_neq
 end
 
 % Normalize the particle shape by the number of regions
-
-% % % % % TLW 
+%
+% % % % %TLW
 % % % % particle_shape_norm = particle_shape_sum / (num_regions_neq - num_regions_eq);
-particle_shape_norm = particle_shape_sum / num_regions_neq;
+% particle_shape_norm = particle_shape_sum / (num_regions_neq);
 
+particle_shape_norm = particle_shape_sum ./ max(particle_shape_sum(:));
 
-% % % % TLW 
-% % % % ncc_norm = ncc_sum ./ max(ncc_sum(:));
-ncc_norm = ncc_sum / num_regions_neq;
+ncc_sub = ncc_sum ./ particle_shape_sum;
 
-% Allocate arrays
+ncc_norm = ncc_sub ./ max(ncc_sub(:));
+
+[AMPLITUDE, STD_DEV_Y, STD_DEV_X, YC, XC, B, ncc_peak_fit] = fit_gaussian_2D(real(ncc_norm), 5);
+
+ncc_fit_sub = ncc_peak_fit - B;
+
+ncc_fit_norm = ncc_fit_sub ./ max(ncc_fit_sub(:));
+
+% ncc_norm = (ncc_sum ./ particle_shape_sum) ./ num_regions_neq;
+
+% % % % This line works
+% ncc_norm = ncc_sum ./ max(ncc_sum(:));
+
 cc_sum = zeros(region_height, region_width) + ...
-    1i * zeros(region_height, region_width);
-
-cc_sum_full = zeros(region_height, region_width) + ...
     1i * zeros(region_height, region_width);
 
 cc_abs_sum = zeros(region_height, region_width);
@@ -187,7 +195,8 @@ cc_cur_max = zeros(num_regions_eq, 1);
 % sx_bulk = sx_bulk_mean;
 % sy_bulk = 0;
 
-
+cc_peak_cols = (xc - 3) : (xc + 3);
+cc_peak_rows = (yc - 3) : (yc + 3);
 
 for r = 1 : num_trials
     
@@ -202,9 +211,13 @@ cc_sum = zeros(region_height, region_width) + ...
 
     gm = zeros(num_regions_eq, 1);
     
+    
+    
 % Do the corresponding correlation
 for k = 1 : num_regions_eq
     
+    cc_fit = zeros(region_height, region_width);
+
     % Particle diameters
     dp_eq       = d_mean + d_std * randn(num_particles, 1);
 
@@ -240,21 +253,43 @@ for k = 1 : num_regions_eq
     % Cross correlation
     cc_cur = fftshift(F1_eq .* conj(F2_eq));
     
-    % Effective number of particles in the CCC
-    N = sqrt(max(real(cc_cur(:))));
+    % Max value
+    cc_div = cc_cur ./ particle_shape_norm;
     
+    % Effective number of particles
+    N = sqrt(max(abs(cc_div(:))));
+    
+    % Peak region
+%     cc_peak = real(cc_div(cc_peak_rows, cc_peak_cols));
+    
+%     % Fit the peak region
+%     [AMPLITUDE, STD_DEV_Y, STD_DEV_X, YC, XC, B, peak_fit] = fit_gaussian_2D(cc_peak);
+
+%     
+%     cc_fit(cc_peak_rows, cc_peak_cols) = peak_fit - B;
+%     
+%     cc_fit_norm = cc_fit ./ max(cc_fit(:));
+    
+
     % Corrected ccc
-% %     % TLW
-%     cc_eq = cc_cur ./ particle_shape_norm - (N^2 - N) * (ncc_norm ./ particle_shape_norm);
-    cc_eq = cc_cur ./ particle_shape_norm - (ncc_norm ./ particle_shape_norm);
+% % % %     % TLW
     
+    
+    cc_eq_real = real(cc_cur) ./ real(particle_shape_norm) - real((N^2 - N) * (ncc_fit_norm));
+    cc_eq_imag = imag(cc_cur) ./ real(particle_shape_norm);
+    
+    cc_eq = cc_eq_real + 1i * cc_eq_imag;
+    
+%     cc_eq(cc_peak_rows, cc_peak_cols) = 0;
     % Ensemble corresponding correlation
     % This line works
     cc_sum = cc_sum + cc_eq;
+%     
+%     surf(real(cc_sum) ./ max(real(cc_sum(:)))); set(gca, 'view', [0, 0]);
+%     
+%     pause;
 
 end
-
-cc_sum_full = cc_sum_full + cc_sum;
 
 % Add the sum of that trial to the sum-over-trials.
 % This means we're taking the magnitude after summing.
@@ -302,8 +337,6 @@ ylim([1, region_height]);
 zlim([0, 1.1]);
 axis square;
 set(gca, 'view', [0, 0]);
-
-colormap jet
 
 % % Plot
 % subplot(1, 2, 1);
