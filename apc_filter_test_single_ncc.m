@@ -1,13 +1,20 @@
 addpaths;
 % clear;
 
-clear
+do_ncc = 0;
+
+if do_ncc
+    clear
+    do_ncc = 1;
+end
+
+fSize = 12;
 
 
-num_trials = 1;
+num_trials = 100;
 
 % Number of corresponding regions
-num_regions_eq = 1000;
+num_regions_eq = 1;
 num_regions_neq = 1000;
 
 % 
@@ -16,11 +23,16 @@ num_regions_neq = 1000;
 region_height = 64;
 region_width = 64;
 
-g = zeros(region_height, region_width, num_trials);
+% Grid step
+gx_range = 16;
+gx_step = 8;
+
+% Random displacements
+s_rand = 1;
 
 
-sx_lb = 3;
-sx_ub = 3;
+sx_lb = -10;
+sx_ub = 10;
 
 sx_bulk_dist = (sx_ub - sx_lb) * rand(num_trials * num_regions_eq, 1) + sx_lb;
 % sx_bulk_dist = 5 * ones(num_trials, 1);
@@ -28,9 +40,6 @@ sx_bulk_dist = (sx_ub - sx_lb) * rand(num_trials * num_regions_eq, 1) + sx_lb;
 % sx_bulk_dist = linspace(1, 10, num_trials);
 
 
-fSize = 12;
-
-do_ncc = 1;
 
 % Window size
 window_fraction = 0.5 * [1, 1];
@@ -40,7 +49,6 @@ sx_bulk_std = 0;
 sy_bulk_std = 0;
 
 % Random displacements
-s_rand = 1;
 sx_rand = s_rand;
 sy_rand = s_rand;
 
@@ -59,8 +67,8 @@ particle_concentration = 1E-2;
 noise_std = 1E-3;
 
 % Particle positions buffer
-x_buffer = -100;
-y_buffer = -100;
+x_buffer = -1000;
+y_buffer = -1000;
 
 
 % % % % %
@@ -87,6 +95,7 @@ aug_height = y_max - y_min + 1;
 % Compute the total number of particles
 num_particles = round(particle_concentration * aug_height * aug_width);
 
+if do_ncc
 
 % Allocate the particle shape
 particle_shape_sum = zeros(region_height, region_width) + 1i * zeros(region_height, region_width);
@@ -100,7 +109,7 @@ ncc_cur_max = zeros(num_regions_neq, 1);
 for k = 1 : num_regions_neq
 
     % Inform the user
-%     fprintf(1, 'NCC %d of %d\n', k, num_regions_neq);
+    fprintf(1, 'NCC %d of %d\n', k, num_regions_neq);
 
     % Particle diameters
     dp_neq_01       = d_mean + d_std * randn(num_particles, 1);
@@ -182,6 +191,8 @@ ncc_fit_norm = ncc_fit_sub ./ max(ncc_fit_sub(:));
 % % % % This line works
 % ncc_norm = ncc_sum ./ max(ncc_sum(:));
 
+end
+
 cc_sum = zeros(region_height, region_width) + ...
     1i * zeros(region_height, region_width);
 
@@ -198,43 +209,64 @@ cc_peak_rows = (yc - 3) : (yc + 3);
 sy_bulk = 0;
 
 
+
+gx_shift = -1 * gx_range : gx_step : gx_range;
+gy_shift = -1 * gx_range : gx_step : gx_range;
+
+[GX, GY] = meshgrid(gx_shift, gy_shift);
+
+
 for r = 1 : num_trials
     
-    fprintf(1, 'Trial %d of %d\n', r, num_trials);
-
-cc_sum = zeros(region_height, region_width) + ...
-    1i * zeros(region_height, region_width);
-
-% Random mean displacements
-   
-
+        % Random mean displacements
+    sx_bulk = sx_bulk_dist(r);
     
+    fprintf(1, 'Trial %d of %d, sx bulk = %0.2f\n', r, num_trials, sx_bulk);
+
+    cc_sum = zeros(region_height, region_width) + ...
+        1i * zeros(region_height, region_width);
+
+
     
 % Do the corresponding correlation
 for k = 1 : num_regions_eq
     
-    sx_bulk = sx_bulk_dist(r * k);
+     
+     
+    
+    
     
     cc_fit = zeros(region_height, region_width);
+    
+     % Particle positions (image 1)
+    x_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
+    y_01 = (y_max - y_min) * rand(num_particles, 1) + y_min;
 
+    % Particle positions (image 2)
+    x_02 = x_01 + sx_bulk + sx_rand * randn(num_particles, 1);
+    y_02 = y_01 + sy_bulk + sy_rand * randn(num_particles, 1);
+    
     % Particle diameters
     dp_eq       = d_mean + d_std * randn(num_particles, 1);
 
     % Particle intensities for the correlated images
     particle_intensities_eq     = d_mean ./ dp_eq;
-
-    % Particle positions (image 1)
-    x_eq_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
-    y_eq_01 = (y_max - y_min) * rand(num_particles, 1) + y_min;
-
-    % Particle positions (image 2)
-    x_eq_02 = x_eq_01 + sx_bulk + sx_rand * randn(num_particles, 1);
-    y_eq_02 = y_eq_01 + sy_bulk + sy_rand * randn(num_particles, 1);
+    
+    noise_mat_full_01 = noise_std * ...
+        randn(region_height + 2 * gx_range, region_width + 2 * gx_range);
+        
 
     % Noise matrices
     noise_mat_eq_01      = noise_std * randn(region_height, region_width);
     noise_mat_eq_02      = noise_std * randn(region_height, region_width);
-
+    
+    for p = 1 : length(GX(:))
+        x_eq_01 = x_01 + GX(p);
+        x_eq_02 = x_02 + GX(p);
+        
+        y_eq_01 = y_01 + GY(p);
+        y_eq_02 = y_02 + GY(p);
+           
     % % Generate the images
     %
     % % Generate the first image
@@ -285,6 +317,8 @@ for k = 1 : num_regions_eq
     cc_sum = cc_sum + cc_eq;
     
     cc_abs_sum_02 = cc_abs_sum_02 + abs(cc_eq).^2;
+    
+    end
      
 % surf(cc_abs_sum_02);
 % set(gca, 'view', [0, 0]);
@@ -329,24 +363,23 @@ cc_abs_shift = abs(cc_abs_sum_sqrt - B);
 
 
 
-surf(real(cc_sum));
 
-% 
-% subplot(1, 2, 1);
-% surf(cc_abs_sum_sqrt ./ max(cc_abs_sum_sqrt(:)));
-% xlim([1, region_width]);
-% ylim([1, region_height]);
-% zlim([0, 1.1]);
-% axis square;
-% set(gca, 'view', [0, 0]);
-% 
-% subplot(1, 2, 2);
-% surf(Z);
-% xlim([1, region_width]);
-% ylim([1, region_height]);
-% zlim([0, 1.1]);
-% axis square;
-% set(gca, 'view', [0, 0]);
+subplot(1, 2, 1);
+surf(cc_abs_sum_sqrt ./ max(cc_abs_sum_sqrt(:)));
+% surf(real(cc_sum) ./ max(real(cc_sum(:))));
+xlim([1, region_width]);
+ylim([1, region_height]);
+zlim(1.1 * [0, 1]);
+axis square;
+set(gca, 'view', [0, 0]);
+
+subplot(1, 2, 2);
+surf(Z);
+xlim([1, region_width]);
+ylim([1, region_height]);
+zlim([0, 1.1]);
+axis square;
+set(gca, 'view', [0, 0]);
 
 
 
