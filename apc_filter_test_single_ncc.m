@@ -1,4 +1,4 @@
-% addpaths;
+addpaths;
 % clear;
 
 clear
@@ -7,7 +7,7 @@ clear
 num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 10;
+num_regions_eq = 1000;
 num_regions_neq = 1000;
 
 % 
@@ -19,11 +19,11 @@ region_width = 64;
 g = zeros(region_height, region_width, num_trials);
 
 
-sx_lb = -10;
-sx_ub = 10;
+sx_lb = 3;
+sx_ub = 3;
 
-% sx_bulk_dist = (sx_ub - sx_lb) * rand(num_trials, 1) + sx_lb;
-sx_bulk_dist = 5 * ones(num_trials, 1);
+sx_bulk_dist = (sx_ub - sx_lb) * rand(num_trials * num_regions_eq, 1) + sx_lb;
+% sx_bulk_dist = 5 * ones(num_trials, 1);
 
 % sx_bulk_dist = linspace(1, 10, num_trials);
 
@@ -31,8 +31,6 @@ sx_bulk_dist = 5 * ones(num_trials, 1);
 fSize = 12;
 
 do_ncc = 1;
-
-
 
 % Window size
 window_fraction = 0.5 * [1, 1];
@@ -112,7 +110,6 @@ for k = 1 : num_regions_neq
     particle_intensities_neq_01     = d_mean ./ dp_neq_01;
     particle_intensities_neq_02     = d_mean ./ dp_neq_02;
 
-
     % Particle positions (image 1)
     x_neq_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
     y_neq_01 = (y_max - y_min) * rand(num_particles, 1) + y_min;
@@ -190,13 +187,16 @@ cc_sum = zeros(region_height, region_width) + ...
 
 cc_abs_sum = zeros(region_height, region_width);
 cc_cur_max = zeros(num_regions_eq, 1);
-
+cc_abs_sum_02 = zeros(region_height, region_width);
 
 % sx_bulk = sx_bulk_mean;
 % sy_bulk = 0;
 
 cc_peak_cols = (xc - 3) : (xc + 3);
 cc_peak_rows = (yc - 3) : (yc + 3);
+
+sy_bulk = 0;
+
 
 for r = 1 : num_trials
     
@@ -206,15 +206,14 @@ cc_sum = zeros(region_height, region_width) + ...
     1i * zeros(region_height, region_width);
 
 % Random mean displacements
-    sx_bulk = sx_bulk_dist(r);
-    sy_bulk = 0;
+   
 
-    gm = zeros(num_regions_eq, 1);
-    
     
     
 % Do the corresponding correlation
 for k = 1 : num_regions_eq
+    
+    sx_bulk = sx_bulk_dist(r * k);
     
     cc_fit = zeros(region_height, region_width);
 
@@ -275,7 +274,7 @@ for k = 1 : num_regions_eq
 % % % %     % TLW
     
     
-    cc_eq_real = real(cc_cur) ./ real(particle_shape_norm) - real((N^2 - N) * (ncc_fit_norm));
+    cc_eq_real = real(cc_cur) ./ real(particle_shape_norm) - real((N^2 - 1 * N) * (ncc_fit_norm));
     cc_eq_imag = imag(cc_cur) ./ real(particle_shape_norm);
     
     cc_eq = cc_eq_real + 1i * cc_eq_imag;
@@ -284,10 +283,13 @@ for k = 1 : num_regions_eq
     % Ensemble corresponding correlation
     % This line works
     cc_sum = cc_sum + cc_eq;
-%     
-%     surf(real(cc_sum) ./ max(real(cc_sum(:)))); set(gca, 'view', [0, 0]);
-%     
-%     pause;
+    
+    cc_abs_sum_02 = cc_abs_sum_02 + abs(cc_eq).^2;
+     
+% surf(cc_abs_sum_02);
+% set(gca, 'view', [0, 0]);
+% pause;
+
 
 end
 
@@ -295,11 +297,14 @@ end
 % This means we're taking the magnitude after summing.
 cc_abs_sum = cc_abs_sum + (abs(cc_sum)).^2;
 
-% Square root
-cc_abs_sum_sqrt = sqrt(cc_abs_sum);
+
 
 
 end
+
+% Square root
+cc_abs_sum_sqrt = sqrt(cc_abs_sum);
+
 
 % for k = 1 : 1 : size(g, 3);
 %     
@@ -309,7 +314,7 @@ end
 %     drawnow; 
 % end;
 
-[A, sy, sx, YC, XC, B, ARRAY] = fit_gaussian_2D(cc_abs_sum_sqrt, 25 * [1, 1]);
+[A, sy, sx, YC, XC, B, ARRAY] = fit_gaussian_2D(cc_abs_sum_sqrt);
 
 fprintf(1, 'stdx = %0.2f, stdy = %0.2f\n', sx, sy);
 
@@ -318,25 +323,33 @@ yv = (1 : region_height);
 
 [X, Y] = meshgrid(xv, yv);
 
-Z = exp(-(X - xc).^2 / (2 * sx^2)) .* exp(-(Y - yc).^2 / (2 * sy^2));
+Z = (exp(-(X - xc).^2 / (2 * sx^2)) .* exp(-(Y - yc).^2 / (2 * sy^2)));
 
 cc_abs_shift = abs(cc_abs_sum_sqrt - B);
 
-subplot(1, 2, 1);
-surf(cc_abs_shift ./ max(cc_abs_shift(:)));
-xlim([1, region_width]);
-ylim([1, region_height]);
-zlim([0, 1.1]);
-axis square;
-set(gca, 'view', [0, 0]);
 
-subplot(1, 2, 2);
-surf(Z);
-xlim([1, region_width]);
-ylim([1, region_height]);
-zlim([0, 1.1]);
-axis square;
-set(gca, 'view', [0, 0]);
+
+surf(real(cc_sum));
+
+% 
+% subplot(1, 2, 1);
+% surf(cc_abs_sum_sqrt ./ max(cc_abs_sum_sqrt(:)));
+% xlim([1, region_width]);
+% ylim([1, region_height]);
+% zlim([0, 1.1]);
+% axis square;
+% set(gca, 'view', [0, 0]);
+% 
+% subplot(1, 2, 2);
+% surf(Z);
+% xlim([1, region_width]);
+% ylim([1, region_height]);
+% zlim([0, 1.1]);
+% axis square;
+% set(gca, 'view', [0, 0]);
+
+
+
 
 % % Plot
 % subplot(1, 2, 1);
