@@ -1,7 +1,7 @@
 addpaths;
 % clear;
 
-do_ncc = 0;
+do_ncc = 1;
 
 if do_ncc
     clear
@@ -26,6 +26,9 @@ region_width = 64;
 % Grid step
 gx_range = 16;
 gx_step = 8;
+
+gy_range = gx_range;
+gy_step = gx_step;
 
 % Random displacements
 s_rand = 1;
@@ -226,17 +229,9 @@ for r = 1 : num_trials
     cc_sum = zeros(region_height, region_width) + ...
         1i * zeros(region_height, region_width);
 
-
     
 % Do the corresponding correlation
 for k = 1 : num_regions_eq
-    
-     
-     
-    
-    
-    
-    cc_fit = zeros(region_height, region_width);
     
      % Particle positions (image 1)
     x_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
@@ -252,13 +247,12 @@ for k = 1 : num_regions_eq
     % Particle intensities for the correlated images
     particle_intensities_eq     = d_mean ./ dp_eq;
     
-    noise_mat_full_01 = noise_std * ...
-        randn(region_height + 2 * gx_range, region_width + 2 * gx_range);
-        
-
     % Noise matrices
-    noise_mat_eq_01      = noise_std * randn(region_height, region_width);
-    noise_mat_eq_02      = noise_std * randn(region_height, region_width);
+    noise_mat_full_01 = noise_std * ...
+        randn(region_height + 2 * gx_range, region_width + 2 * gy_range);
+    noise_mat_full_02 = noise_std * ...
+        randn(region_height + 2 * gx_range, region_width + 2 * gy_range);
+        
     
     for p = 1 : length(GX(:))
         x_eq_01 = x_01 + GX(p);
@@ -266,65 +260,58 @@ for k = 1 : num_regions_eq
         
         y_eq_01 = y_01 + GY(p);
         y_eq_02 = y_02 + GY(p);
-           
-    % % Generate the images
-    %
-    % % Generate the first image
-    region_eq_01 = generateParticleImage(region_height, region_width,...
-    x_eq_01, y_eq_01, dp_eq, particle_intensities_eq) + noise_mat_eq_01;
-    %
-    % Generate the second image
-    region_eq_02 = generateParticleImage(region_height, region_width,...
-    x_eq_02, y_eq_02, dp_eq, particle_intensities_eq) + noise_mat_eq_02;
+        
+        % Noise coordinates
+        noise_x_left = 1 + GX(p) + gx_range;
+        noise_x_right = noise_x_left + region_width - 1;
+        noise_y_top = 1 + GY(p) + gy_range;
+        noise_y_bottom = noise_y_top + region_height - 1;
 
-    % Transforms
-    F1_eq = fft2(g_win .* region_eq_01);
-    F2_eq = fft2(g_win .* region_eq_02);
+        % Extract noise
+        noise_mat_eq_01 = noise_mat_full_01(...
+            noise_y_top:noise_y_bottom, noise_x_left : noise_x_right);
+        noise_mat_eq_02 = noise_mat_full_02(...
+            noise_y_top:noise_y_bottom, noise_x_left : noise_x_right);
 
-    % Cross correlation
-    cc_cur = fftshift(F1_eq .* conj(F2_eq));
-    
-    % Max value
-    cc_div = cc_cur ./ particle_shape_norm;
-    
-    % Effective number of particles
-    N = sqrt(max(abs(cc_div(:))));
-    
-    % Peak region
-%     cc_peak = real(cc_div(cc_peak_rows, cc_peak_cols));
-    
-%     % Fit the peak region
-%     [AMPLITUDE, STD_DEV_Y, STD_DEV_X, YC, XC, B, peak_fit] = fit_gaussian_2D(cc_peak);
+        % % Generate the images
+        %
+        % % Generate the first image
+        region_eq_01 = generateParticleImage(region_height, region_width,...
+        x_eq_01, y_eq_01, dp_eq, particle_intensities_eq) + noise_mat_eq_01;
+        %
+        % Generate the second image
+        region_eq_02 = generateParticleImage(region_height, region_width,...
+        x_eq_02, y_eq_02, dp_eq, particle_intensities_eq) + noise_mat_eq_02;
 
-%     
-%     cc_fit(cc_peak_rows, cc_peak_cols) = peak_fit - B;
-%     
-%     cc_fit_norm = cc_fit ./ max(cc_fit(:));
-    
+        % Transforms
+        F1_eq = fft2(g_win .* region_eq_01);
+        F2_eq = fft2(g_win .* region_eq_02);
 
-    % Corrected ccc
-% % % %     % TLW
-    
-    
-    cc_eq_real = real(cc_cur) ./ real(particle_shape_norm) - real((N^2 - 1 * N) * (ncc_fit_norm));
-    cc_eq_imag = imag(cc_cur) ./ real(particle_shape_norm);
-    
-    cc_eq = cc_eq_real + 1i * cc_eq_imag;
-    
-%     cc_eq(cc_peak_rows, cc_peak_cols) = 0;
-    % Ensemble corresponding correlation
-    % This line works
-    cc_sum = cc_sum + cc_eq;
-    
-    cc_abs_sum_02 = cc_abs_sum_02 + abs(cc_eq).^2;
-    
+        % Cross correlation
+        cc_cur = fftshift(F1_eq .* conj(F2_eq));
+
+        % Max value
+        cc_div = cc_cur ./ particle_shape_norm;
+
+        % Effective number of particles
+        N = sqrt(max(abs(cc_div(:))));
+
+        % Real and imaginary parts of corrected CC
+        cc_eq_real = real(cc_cur) ./ real(particle_shape_norm) - real((N^2 - 1 * N) * (ncc_fit_norm));
+        cc_eq_imag = imag(cc_cur) ./ real(particle_shape_norm);
+
+        % Complex corrected CC
+        cc_eq = cc_eq_real + 1i * cc_eq_imag;
+
+    %     cc_eq(cc_peak_rows, cc_peak_cols) = 0;
+        % Ensemble corresponding correlation
+        % This line works
+        cc_sum = cc_sum + cc_eq;
+
+        cc_abs_sum_02 = cc_abs_sum_02 + abs(cc_eq).^2;
+
     end
-     
-% surf(cc_abs_sum_02);
-% set(gca, 'view', [0, 0]);
-% pause;
-
-
+    
 end
 
 % Add the sum of that trial to the sum-over-trials.
@@ -365,7 +352,7 @@ cc_abs_shift = abs(cc_abs_sum_sqrt - B);
 
 
 subplot(1, 2, 1);
-surf(cc_abs_sum_sqrt ./ max(cc_abs_sum_sqrt(:)));
+surf(cc_abs_shift ./ max(cc_abs_shift(:)));
 % surf(real(cc_sum) ./ max(real(cc_sum(:))));
 xlim([1, region_width]);
 ylim([1, region_height]);
