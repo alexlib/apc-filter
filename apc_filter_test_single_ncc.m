@@ -24,15 +24,14 @@ region_height = 64;
 region_width = 64;
 
 % Grid step
-gx_range = 16;
-gx_step = 8;
+gx_range = 32;
+gx_step = 16;
 
 gy_range = gx_range;
 gy_step = gx_step;
 
 % Random displacements
 s_rand = 1;
-
 
 sx_lb = -10;
 sx_ub = 10;
@@ -187,7 +186,9 @@ ncc_norm = ncc_sub ./ max(ncc_sub(:));
 
 ncc_fit_sub = ncc_peak_fit - B;
 
-ncc_fit_norm = ncc_fit_sub ./ max(ncc_fit_sub(:));
+% ncc_fit_norm = ncc_fit_sub ./ max(ncc_fit_sub(:));
+
+ncc_fit_norm = ncc_norm;
 
 % ncc_norm = (ncc_sum ./ particle_shape_sum) ./ num_regions_neq;
 
