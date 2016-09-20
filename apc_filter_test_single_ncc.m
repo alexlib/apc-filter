@@ -104,8 +104,6 @@ aug_height = y_max - y_min + 1;
 % Compute the total number of particles
 num_particles = round(particle_concentration * aug_height * aug_width);
 
-if do_ncc
-
 % Allocate the particle shape
 particle_shape_sum = zeros(region_height, region_width) + 1i * zeros(region_height, region_width);
 
@@ -216,61 +214,35 @@ ncc_div = ncc_sum ./ particle_shape_sum;
 % Normalize the NCC so that its maximum is one.
 ncc_norm = ncc_div ./ max(ncc_div(:));
 
+% Full NCC, which is not divided by the particle shape
 ncc_full_norm = ncc_sum ./ max(real(ncc_sum(:)));
 
-% 
-% [AMPLITUDE, STD_DEV_Y, STD_DEV_X, YC, XC, B, ncc_peak_fit] = fit_gaussian_2D(real(ncc_norm), 5);
-
-% ncc_fit_sub = ncc_peak_fit - B;
-
-% ncc_fit_norm = ncc_fit_sub ./ max(ncc_fit_sub(:));
-
-% this worked when it was uncommented. Dealt with noise.
-% Uncomment this.
-ncc_fit_norm = ncc_norm;
-
-% ncc_norm = (ncc_sum ./ particle_shape_sum) ./ num_regions_neq;
-
-% % % % This line works
-% ncc_norm = ncc_sum ./ max(ncc_sum(:));
-
-end
-
-cc_sum = zeros(region_height, region_width) + ...
-    1i * zeros(region_height, region_width);
-
+% Allocate the CC sums
 cc_abs_sum = zeros(region_height, region_width);
 cc_abs_full_sum = zeros(region_height, region_width);
-cc_cur_max = zeros(num_regions_eq, 1);
-cc_abs_sum_02 = zeros(region_height, region_width);
 
-
-cc_peak_cols = (xc - 3) : (xc + 3);
-cc_peak_rows = (yc - 3) : (yc + 3);
-
+% Shake-the-box shfting coordinates
 gx_shift = -1 * gx_range : gx_step : gx_range;
 gy_shift = -1 * gx_range : gx_step : gx_range;
-
 [GX, GY] = meshgrid(gx_shift, gy_shift);
-
-
-
 
 for r = 1 : num_trials
     
-        % Random mean displacements
+     % Inform the user
+    fprintf(1, 'Trial %d of %d, sx bulk = %0.2f\n', r, num_trials, sx_bulk);
+    
+    % Random mean displacements
     sx_bulk = sx_bulk_dist(r);
     sy_bulk = sy_bulk_dist(r);
     
-    fprintf(1, 'Trial %d of %d, sx bulk = %0.2f\n', r, num_trials, sx_bulk);
-
+    % Allocate running CC sum for the CCC
     cc_sum = zeros(region_height, region_width) + ...
         1i * zeros(region_height, region_width);
     
+    % Allocate running CC sum for the CC minus the NCC
     cc_full_sum = zeros(region_height, region_width) + ...
         1i * zeros(region_height, region_width);
 
-    
 % Do the corresponding correlation
 for k = 1 : num_regions_eq
     
@@ -294,7 +266,7 @@ for k = 1 : num_regions_eq
     noise_mat_full_02 = noise_std * ...
         randn(region_height + 2 * gx_range, region_width + 2 * gy_range);
         
-    
+    % Shake-the-box
     for p = 1 : length(GX(:))
         x_eq_01 = x_01 + GX(p);
         x_eq_02 = x_02 + GX(p);
@@ -341,7 +313,7 @@ for k = 1 : num_regions_eq
         N_raw = sqrt(max(abs(cc_cur(:))));
 
         % Real and imaginary parts of corrected CC
-        cc_eq_real = real(cc_cur) ./ real(particle_shape_norm) - real((N_div^2 - 1 * N_div) * (ncc_fit_norm));
+        cc_eq_real = real(cc_cur) ./ real(particle_shape_norm) - real((N_div^2 - 1 * N_div) * (ncc_norm));
         cc_eq_imag = imag(cc_cur) ./ real(particle_shape_norm);
 
         % Complex corrected CC
@@ -349,18 +321,14 @@ for k = 1 : num_regions_eq
         
         % Full CC minus the NCC
         cc_eq_full = cc_cur - real((N_raw^2 - N_raw) * ncc_full_norm);
-%         
-%         cc_eq_full_real = real(cc_cur) - (N_raw^2 - N_raw) .* real(ncc_full_norm);
-%         cc_eq_full_imag = imag(cc_cur);
 
-    %     cc_eq(cc_peak_rows, cc_peak_cols) = 0;
         % Ensemble corresponding correlation
-        % This line works
+        % (divided by particle shape, minus NCC)
         cc_sum = cc_sum + cc_eq;
         
+        %  Ensemble corresponding correlation 
+        % (minus NCC, without dividing by particle shape)
         cc_full_sum = cc_full_sum + cc_eq_full;
-
-        cc_abs_sum_02 = cc_abs_sum_02 + abs(cc_eq).^2;
 
     end
     
@@ -370,28 +338,21 @@ end
 % This means we're taking the magnitude after summing.
 cc_abs_sum = cc_abs_sum + (abs(cc_sum)).^2;
 
+% Add the sum of the CCC without division by particle shape
 cc_abs_full_sum = cc_abs_full_sum + (abs(cc_full_sum).^2);
 
 
 end
 
-% Square root
+% Square roots
 cc_abs_sum_sqrt = sqrt(cc_abs_sum);
-
 cc_abs_full_sum_sqrt = sqrt(cc_abs_full_sum);
 
-
-% for k = 1 : 1 : size(g, 3);
-%     
-%     g_plot = g(:, :, k);
-%     
-%     surf(g_plot ./ max(g_plot(:))); 
-%     drawnow; 
-% end;
 
 % Fit the NCC
 [A, sy, sx, YC, XC, B, ARRAY] = fit_gaussian_2D(cc_abs_sum_sqrt);
 
+% Fit the particle shape
 [~, ~, ~, ~, ~, B_p, particle_shape_peak_fit] = fit_gaussian_2D(particle_shape_norm);
 
 p_n = particle_shape_norm - B_p;
