@@ -20,27 +20,26 @@ num_regions_neq = 1000;
 % 
 
 % Image dimensions
-region_height = 64;
-region_width = 64;
+region_height = 32;
+region_width = 32;
 
 % Grid step
-gx_range = 32;
-gx_step = 16;
+gx_range = 16;
+gx_step = 8;
 
 gy_range = gx_range;
 gy_step = gx_step;
 
 % Random displacements
-s_rand = 1;
+s_rand = 3;
 
-sx_lb = -10;
-sx_ub = 10;
+sx_lb = -8;
+sx_ub = 8;
 
 sx_bulk_dist = (sx_ub - sx_lb) * rand(num_trials * num_regions_eq, 1) + sx_lb;
 % sx_bulk_dist = 5 * ones(num_trials, 1);
 
 % sx_bulk_dist = linspace(1, 10, num_trials);
-
 
 
 % Window size
@@ -57,21 +56,20 @@ sy_rand = s_rand;
 % % Particle stuff
 
 % Standard deviation of particle image diameters
-d_std = 0.0;
+d_std = 1.0;
 
 % Mean particle diameter
-d_mean = 1 * sqrt(8) ;
+d_mean = 1.5 * sqrt(8) ;
 
 % Particle concentration in particles per pixel
 particle_concentration = 1E-2;
 
 % Image noise
-noise_std = 1E-3;
+noise_std = 10E-2;
 
 % Particle positions buffer
-x_buffer = -1000;
-y_buffer = -1000;
-
+x_buffer = -100;
+y_buffer = -100;
 
 % % % % %
 
@@ -170,24 +168,27 @@ for k = 1 : num_regions_neq
 
 end
 
-% Normalize the particle shape by the number of regions
-%
-% % % % %TLW
-% % % % particle_shape_norm = particle_shape_sum / (num_regions_neq - num_regions_eq);
-% particle_shape_norm = particle_shape_sum / (num_regions_neq);
-
+% Normalize the particle so its maximum is one.
+% Note that we don't want to force the minimum to zero
+% Because that will cause the edges to blow up
+% whenever we divide by it.
 particle_shape_norm = particle_shape_sum ./ max(particle_shape_sum(:));
 
-ncc_sub = ncc_sum ./ particle_shape_sum;
+% % This line works!!!!
+ncc_div = ncc_sum ./ particle_shape_sum;
 
-ncc_norm = ncc_sub ./ max(ncc_sub(:));
+% Normalize the NCC so that its maximum is one.
+ncc_norm = ncc_div ./ max(ncc_div(:));
 
-[AMPLITUDE, STD_DEV_Y, STD_DEV_X, YC, XC, B, ncc_peak_fit] = fit_gaussian_2D(real(ncc_norm), 5);
+% 
+% [AMPLITUDE, STD_DEV_Y, STD_DEV_X, YC, XC, B, ncc_peak_fit] = fit_gaussian_2D(real(ncc_norm), 5);
 
-ncc_fit_sub = ncc_peak_fit - B;
+% ncc_fit_sub = ncc_peak_fit - B;
 
 % ncc_fit_norm = ncc_fit_sub ./ max(ncc_fit_sub(:));
 
+% this worked when it was uncommented. Dealt with noise.
+% Uncomment this.
 ncc_fit_norm = ncc_norm;
 
 % ncc_norm = (ncc_sum ./ particle_shape_sum) ./ num_regions_neq;
@@ -211,7 +212,6 @@ cc_peak_cols = (xc - 3) : (xc + 3);
 cc_peak_rows = (yc - 3) : (yc + 3);
 
 sy_bulk = 0;
-
 
 
 gx_shift = -1 * gx_range : gx_step : gx_range;
