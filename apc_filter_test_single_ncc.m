@@ -12,11 +12,13 @@ fSize_axes = 12;
 fSize_title = 16;
 
 
-num_trials = 300;
+num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 1;
+num_regions_eq = 1000;
 num_regions_neq = 1000;
+
+cc_abs_mad = zeros(num_regions_eq, 1);
 
 % 
 
@@ -25,8 +27,8 @@ region_height = 32;
 region_width = 32;
 
 % % Grid step
-gx_range = 16;
-gx_step = 16;
+gx_range = 0;
+gx_step = 0;
 
 % gx_range = 256;
 % gx_step = 32;
@@ -36,7 +38,7 @@ gy_range = gx_range;
 gy_step = gx_step;
 
 % Random displacements
-s_rand = 3;
+s_rand = 1.0;
 
 sx_lb = -4;
 sx_ub = 4;
@@ -49,7 +51,6 @@ sy_bulk_dist = (sy_ub - sy_lb) * rand(num_trials * num_regions_eq, 1) + sy_lb;
 % sx_bulk_dist = 5 * ones(num_trials, 1);
 
 % sx_bulk_dist = linspace(1, 10, num_trials);
-
 
 % Window size
 window_fraction = 0.5 * [1, 1];
@@ -71,14 +72,14 @@ d_std = 0.5;
 d_mean = 1 * sqrt(8) ;
 
 % Particle concentration in particles per pixel
-particle_concentration = 3E-2;
+particle_concentration = 2E-2;
 
 % Image noise
 noise_std_fract = 5E-2;
 
 % Particle positions buffer
-x_buffer = -32;
-y_buffer = -32;
+x_buffer = -16;
+y_buffer = -16;
 
 % % % % %
 
@@ -224,16 +225,27 @@ cc_abs_full_sum = zeros(region_height, region_width);
 % Shake-the-box shfting coordinates
 gx_shift = -1 * gx_range : gx_step : gx_range;
 gy_shift = -1 * gx_range : gx_step : gx_range;
+
+if isempty(gx_shift)
+    gx_shift = 0;
+end
+
+if isempty(gy_shift)
+    gy_shift = 0;
+end
+
 [GX, GY] = meshgrid(gx_shift, gy_shift);
 
+
+
 for r = 1 : num_trials
-    
-     % Inform the user
-    fprintf(1, 'Trial %d of %d, sx bulk = %0.2f\n', r, num_trials, sx_bulk);
     
     % Random mean displacements
     sx_bulk = sx_bulk_dist(r);
     sy_bulk = sy_bulk_dist(r);
+    
+     % Inform the user
+    fprintf(1, 'Trial %d of %d, sx bulk = %0.2f\n', r, num_trials, sx_bulk);
     
     % Allocate running CC sum for the CCC
     cc_sum = zeros(region_height, region_width) + ...
@@ -242,6 +254,9 @@ for r = 1 : num_trials
     % Allocate running CC sum for the CC minus the NCC
     cc_full_sum = zeros(region_height, region_width) + ...
         1i * zeros(region_height, region_width);
+    
+    
+    cc_abs_cur_new = zeros(region_height, region_width);
 
 % Do the corresponding correlation
 for k = 1 : num_regions_eq
@@ -249,10 +264,20 @@ for k = 1 : num_regions_eq
      % Particle positions (image 1)
     x_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
     y_01 = (y_max - y_min) * rand(num_particles, 1) + y_min;
+    
+    
+%     v = zeros(size(x_01));
+%     u = sx_bulk * sin(4 * y_01 / region_height * 2 * pi);
+    
 
     % Particle positions (image 2)
+    % TLW
     x_02 = x_01 + sx_bulk + sx_rand * randn(num_particles, 1);
     y_02 = y_01 + sy_bulk + sy_rand * randn(num_particles, 1);
+    
+%     x_02 = x_01 + u + sx_rand * randn(num_particles, 1);
+%     y_02 = y_01 + v + sy_rand * randn(num_particles, 1);
+
     
     % Particle diameters
     dp_eq       = d_mean + d_std * randn(num_particles, 1);
@@ -268,6 +293,9 @@ for k = 1 : num_regions_eq
         
     % Shake-the-box
     for p = 1 : length(GX(:))
+        
+        cc_abs_cur_old = cc_abs_cur_new;
+        
         x_eq_01 = x_01 + GX(p);
         x_eq_02 = x_02 + GX(p);
         
@@ -295,7 +323,7 @@ for k = 1 : num_regions_eq
         % Generate the second image
         region_eq_02 = generateParticleImage(region_height, region_width,...
         x_eq_02, y_eq_02, dp_eq, particle_intensities_eq) + noise_mat_eq_02;
-
+   
         % Transforms
         F1_eq = fft2(g_win .* region_eq_01);
         F2_eq = fft2(g_win .* region_eq_02);
@@ -329,6 +357,18 @@ for k = 1 : num_regions_eq
         %  Ensemble corresponding correlation 
         % (minus NCC, without dividing by particle shape)
         cc_full_sum = cc_full_sum + cc_eq_full;
+        
+        
+        
+        cc_abs_cur_new = abs(cc_sum) ./ max(abs(cc_sum(:)));
+        cc_abs_diff = abs((cc_abs_cur_new(:) - cc_abs_cur_old(:)) ./ cc_abs_cur_old(:));
+        
+        cc_abs_mad(k) = mean(cc_abs_diff);
+        
+%         surf(cc_abs_cur_new);
+%         pause();
+%         
+        fprintf(1, 'CC abs mad = %0.4f\n', cc_abs_mad(k));
 
     end
     
@@ -341,6 +381,7 @@ cc_abs_sum = cc_abs_sum + (abs(cc_sum)).^2;
 % Add the sum of the CCC without division by particle shape
 cc_abs_full_sum = cc_abs_full_sum + (abs(cc_full_sum).^2);
 
+% keyboard;
 
 end
 
@@ -375,8 +416,6 @@ Z = (exp(-(X - xc).^2 / (2 * sx^2)) .* exp(-(Y - yc).^2 / (2 * sy^2)));
 
 cc_abs_shift = abs(cc_abs_sum_sqrt - B);
 cc_abs_full_shift = abs(cc_abs_full_sum_sqrt - B);
-
-
 
 
 subplot(1, 2, 1);
