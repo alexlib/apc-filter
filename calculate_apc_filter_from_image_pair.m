@@ -1,11 +1,6 @@
 function [SPECTRAL_FILTER, PARTICLE_SHAPE, FILTER_FIT] = calculate_apc_filter_from_image_pair(image_01, image_02, ...
     grid_y, grid_x, region_height, region_width, window_fraction, shuffle_range, shuffle_step, num_regions_neq);
 
-% Image size
-[image_height, image_width, num_channels] = size(image_01);
-
-% Grid the image. This is temporary line.
-
 
 % % Extract grid coordinates
 gy = grid_y(:);
@@ -15,7 +10,8 @@ gx = grid_x(:);
 num_regions_eq = length(gy);
 
 % Make the Gaussian window
-g_win = gaussianWindowFilter([region_height, region_width], window_fraction, 'fraction');
+g_win = gaussianWindowFilter([region_height, region_width], ...
+    window_fraction, 'fraction');
 
 
 % Calculate the NCC
@@ -64,11 +60,11 @@ for k = 1 : num_regions_neq
     fprintf(1, 'NCC %d of %d\n', k, num_regions_neq);
 
     % % Extract the region from the first image
-    region_neq_01 = extractSubRegions(image_01, ...
+    region_neq_01 = extractSubRegions(double(image_01), ...
         [region_height, region_width], gx(region_numbers_neq_01(k)), gy(region_numbers_neq_01(k)));
 
     % Extract the region from the second image
-    region_neq_02 = extractSubRegions(image_02, ...
+    region_neq_02 = extractSubRegions(double(image_02), ...
         [region_height, region_width], gx(region_numbers_neq_02(k)), gy(region_numbers_neq_02(k)));
 
     % Transforms
