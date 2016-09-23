@@ -1,4 +1,4 @@
-function SPECTRAL_FILTER = calculate_apc_filter_from_image_pair(image_01, image_02, ...
+function [SPECTRAL_FILTER, PARTICLE_SHAPE, FILTER_FIT] = calculate_apc_filter_from_image_pair(image_01, image_02, ...
     grid_y, grid_x, region_height, region_width, window_fraction, shuffle_range, shuffle_step, num_regions_neq);
 
 % Image size
@@ -178,9 +178,31 @@ cc_abs_sum_sub = cc_abs_sum_sqrt - min(cc_abs_sum_sqrt(:));
 % Normalize
 cc_abs_sum_norm = cc_abs_sum_sub ./ max(cc_abs_sum_sub(:));
 
+% Min subtracted particle shape
+particle_shape_sub = particle_shape_norm - min(particle_shape_norm(:));
+
+% Normalized particle shape
+PARTICLE_SHAPE = particle_shape_sub ./ max(particle_shape_sub(:));
 
 % Full filter;
-SPECTRAL_FILTER = cc_abs_sum_norm .* particle_shape_norm;
+spectral_filter_full = cc_abs_sum_norm .* PARTICLE_SHAPE;
+
+% Min subtracted spectral filter.
+spectral_filter_sub = (spectral_filter_full - min(spectral_filter_full(:)));
+
+% Normalized spectral filter
+SPECTRAL_FILTER = spectral_filter_sub ./ max(spectral_filter_sub(:));
+
+% Fit a Gaussian to this filter.
+% A lot of PIV things will be Gaussian.
+[~, ~, ~, ~, ~, array_offset, array_full] =...
+    fit_gaussian_2D(SPECTRAL_FILTER);
+
+% Min subtracted filter fit
+array_sub = array_full - array_offset;
+
+% Normalized filter fit.
+FILTER_FIT = array_sub ./ max(array_sub(:));
 
 
 end
