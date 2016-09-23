@@ -12,7 +12,7 @@ fSize_axes = 12;
 fSize_title = 16;
 
 
-num_trials = 20;
+num_trials = 100;
 
 % Number of corresponding regions
 num_regions_eq = 1;
@@ -23,12 +23,12 @@ cc_abs_mad = zeros(num_regions_eq, 1);
 % 
 
 % Image dimensions
-region_height = 32;
-region_width = 32;
+region_height = 1024;
+region_width = 1024;
 
 % % Grid step
-gx_range = 16;
-gx_step = 16;
+gx_range = 0;
+gx_step = 0;
 
 % gx_range = 256;
 % gx_step = 32;
@@ -194,7 +194,7 @@ for k = 1 : num_regions_neq
     
     % Particle shape current
 %     particle_shape_cur = ac_mean - ncc_cur;
-    particle_shape_cur = ac_mean;
+    particle_shape_cur = abs(ac_mean);
     
     % Sum
     ncc_sum = ncc_sum + ncc_cur;
@@ -209,6 +209,10 @@ end
 % Because that will cause the edges to blow up
 % whenever we divide by it.
 particle_shape_norm = real(particle_shape_sum ./ max(particle_shape_sum(:)));
+
+% Fit a Gaussian to this;
+% Fit the NCC
+[A, ~, ~, ~, ~, B, particle_shape_fit] = fit_gaussian_2D(particle_shape_norm);
 
 % % This line works!!!!
 ncc_div = ncc_sum ./ particle_shape_sum;
@@ -236,8 +240,6 @@ if isempty(gy_shift)
 end
 
 [GX, GY] = meshgrid(gx_shift, gy_shift);
-
-
 
 for r = 1 : num_trials
     
@@ -268,20 +270,11 @@ for k = 1 : num_regions_eq
     x_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
     y_01 = (y_max - y_min) * rand(num_particles, 1) + y_min;
     
-    
-%     v = zeros(size(x_01));
-%     u = sx_bulk * sin(4 * y_01 / region_height * 2 * pi);
-    
-
     % Particle positions (image 2)
     % TLW
     x_02 = x_01 + sx_bulk + sx_rand * randn(num_particles, 1);
     y_02 = y_01 + sy_bulk + sy_rand * randn(num_particles, 1);
-    
-%     x_02 = x_01 + u + sx_rand * randn(num_particles, 1);
-%     y_02 = y_01 + v + sy_rand * randn(num_particles, 1);
-
-    
+        
     % Particle diameters
     dp_eq       = d_mean + d_std * randn(num_particles, 1);
 
@@ -296,8 +289,6 @@ for k = 1 : num_regions_eq
         
     % Shake-the-box
     for p = 1 : length(GX(:))
-        
-        cc_abs_cur_old = cc_abs_cur_new;
         
         x_eq_01 = x_01 + GX(p);
         x_eq_02 = x_02 + GX(p);
@@ -328,60 +319,19 @@ for k = 1 : num_regions_eq
         x_eq_02, y_eq_02, dp_eq, particle_intensities_eq) + noise_mat_eq_02;
    
         % Transforms
-        F1_eq = fft2(g_win .* region_eq_01);
-        F2_eq = fft2(g_win .* region_eq_02);
+        F1_eq = fft2(g_win .* (region_eq_01 - mean(region_eq_01(:))));
+        F2_eq = fft2(g_win .* (region_eq_02 - mean(region_eq_02(:))));
 
         % Cross correlation
         cc_cur = fftshift(F1_eq .* conj(F2_eq));
 
-        % Max value
-        cc_div = cc_cur ./ particle_shape_norm;
-
-        % Effective number of particles in the divided CC
-        N_div = sqrt(max(abs(cc_div(:))));
-        
-        % Effective number of particles in the raw CC
-        N_raw = sqrt(max(abs(cc_cur(:))));
-
-        % Real and imaginary parts of corrected CC
-        cc_eq_real = real(cc_cur) ./ real(particle_shape_norm) - real((N_div^2 - 1 * N_div) * (ncc_norm));
-        cc_eq_imag = imag(cc_cur) ./ real(particle_shape_norm);
-
-        % Complex corrected CC
-        cc_eq = cc_eq_real + 1i * cc_eq_imag;
-        
-        % Full CC minus the NCC
-        cc_eq_full = cc_cur - real((N_raw^2 - N_raw)/N_raw^2 * ncc_full_norm);
+        % Divide by the particle shape
+        cc_eq = cc_cur ./ particle_shape_norm;
 
         % Ensemble corresponding correlation
         % (divided by particle shape, minus NCC)
         cc_sum = cc_sum + cc_eq;
-        
-        %  Ensemble corresponding correlation 
-        % (minus NCC, without dividing by particle shape)
-        cc_full_sum = cc_full_sum + cc_eq_full;
-        
-        cc_test = abs(cc_sum);
-        
-%         surf(cc_test ./ max(cc_test(:)));
-%         axis square;
-%         xlim([1, region_width]);
-%         ylim([1, region_height]);
-%         zlim(1.1 * [0, 1]);
-%         drawnow;
-%         
-        
-        
-        cc_abs_cur_new = abs(cc_sum) ./ max(abs(cc_sum(:)));
-        cc_abs_diff = abs((cc_abs_cur_new(:) - cc_abs_cur_old(:)) ./ cc_abs_cur_old(:));
-        
-        cc_abs_mad(k) = mean(cc_abs_diff);
-        
-%         surf(cc_abs_cur_new);
-%         pause();
-%         
-        fprintf(1, 'CC abs mad = %0.4f\n', cc_abs_mad(k));
-
+       
     end
     
 end
@@ -389,9 +339,6 @@ end
 % Add the sum of that trial to the sum-over-trials.
 % This means we're taking the magnitude after summing.
 cc_abs_sum = cc_abs_sum + (abs(cc_sum)).^2;
-
-% Add the sum of the CCC without division by particle shape
-cc_abs_full_sum = cc_abs_full_sum + (abs(cc_full_sum).^2);
 
 % keyboard;
 
