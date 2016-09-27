@@ -15,7 +15,7 @@ fSize_title = 12;
 num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 1000;
+num_regions_eq = 2000;
 num_regions_neq = 1000;
 
 cc_abs_mad = zeros(num_regions_eq, 1);
@@ -37,13 +37,16 @@ gy_range = gx_range;
 gy_step = gx_step;
 
 % Random displacements
-s_rand = 0.1;
+s_rand = 1;
 
-sx_lb =  4;
-sx_ub =  4;
+sx_lb =  5;
+sx_ub =  5;
 
 sy_lb = sx_lb;
 sy_ub = sx_ub;
+
+sy_lb = 0;
+sy_ub = 0;
 
 sx_bulk_dist = (sx_ub - sx_lb) * rand(num_trials * num_regions_eq, 1) + sx_lb;
 sy_bulk_dist = (sy_ub - sy_lb) * rand(num_trials * num_regions_eq, 1) + sy_lb;
@@ -519,6 +522,18 @@ set(gca, 'zticklabel', {''})
 colormap parula;
 
 ft = 9;
+
+figure; 
+subplot(1, 2, 1); 
+rsurf(real(cc_full_sum));
+box on
+set(gca, 'view', [0, 0]);
+
+subplot(1, 2, 2);
+rsurf(imag(cc_full_sum));
+box on
+set(gca, 'view', [0, 0]);
+
 % 
 % figure(2);
 % subplot(1, 3, 1);

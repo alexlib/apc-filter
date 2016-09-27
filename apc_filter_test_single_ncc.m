@@ -14,14 +14,14 @@ fSize = 12;
 num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 100;
+num_regions_eq = 5000;
 num_regions_neq = 1000;
 
 % 
 
 % Image dimensions
-region_height = 32;
-region_width = 32;
+region_height = 64;
+region_width = 64;
 
 % Grid step
 gx_range = 0;
@@ -31,10 +31,10 @@ gy_range = gx_range;
 gy_step = gx_step;
 
 % Random displacements
-s_rand = 0;
+s_rand = 1;
 
-sx_lb = 8;
-sx_ub = 8;
+sx_lb = 5;
+sx_ub = 5;
 
 sx_bulk_dist = (sx_ub - sx_lb) * rand(num_trials * num_regions_eq, 1) + sx_lb;
 % sx_bulk_dist = 5 * ones(num_trials, 1);
@@ -43,7 +43,7 @@ sx_bulk_dist = (sx_ub - sx_lb) * rand(num_trials * num_regions_eq, 1) + sx_lb;
 
 
 % Window size
-window_fraction = 0.5 * [1, 1];
+window_fraction = 0.4 * [1, 1];
 
 % Bulk displacements (std dev)
 sx_bulk_std = 0;
@@ -56,7 +56,7 @@ sy_rand = s_rand;
 % % Particle stuff
 
 % Standard deviation of particle image diameters
-d_std = 1.0;
+d_std = 0.0;
 
 % Mean particle diameter
 d_mean = 1 * sqrt(8) ;
@@ -304,6 +304,7 @@ for k = 1 : num_regions_eq
 
         % Effective number of particles
         N = sqrt(max(abs(cc_div(:))));
+        N = sqrt(max(abs(cc_cur(:))));
 
         % Real and imaginary parts of corrected CC
         cc_eq_real = real(cc_cur) ./ real(particle_shape_norm) - real((N^2 - 1 * N) * (ncc_fit_norm));
@@ -361,7 +362,7 @@ cc_abs_shift = abs(cc_abs_sum_sqrt - B);
 
 
 subplot(1, 2, 1);
-surf(cc_abs_shift ./ max(cc_abs_shift(:)));
+surf(cc_abs_sum_sqrt ./ max(cc_abs_sum_sqrt(:)));
 % surf(real(cc_sum) ./ max(real(cc_sum(:))));
 xlim([1, region_width]);
 ylim([1, region_height]);
