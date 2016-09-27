@@ -8,14 +8,14 @@ if do_ncc
     do_ncc = 1;
 end
 
-fSize_axes = 12;
-fSize_title = 16;
+fSize_axes = 9;
+fSize_title = 12;
 
 
-num_trials = 100;
+num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 1;
+num_regions_eq = 1000;
 num_regions_neq = 1000;
 
 cc_abs_mad = zeros(num_regions_eq, 1);
@@ -23,9 +23,8 @@ cc_abs_mad = zeros(num_regions_eq, 1);
 % 
 
 % Image dimensions
-region_height = 1024;
-region_width = 1024;
-
+region_height = 64;
+region_width  = 64;
 % % Grid step
 gx_range = 0;
 gx_step = 0;
@@ -38,10 +37,10 @@ gy_range = gx_range;
 gy_step = gx_step;
 
 % Random displacements
-s_rand = 1;
+s_rand = 0.1;
 
-sx_lb = -4;
-sx_ub = 4;
+sx_lb =  4;
+sx_ub =  4;
 
 sy_lb = sx_lb;
 sy_ub = sx_ub;
@@ -53,11 +52,11 @@ sy_bulk_dist = (sy_ub - sy_lb) * rand(num_trials * num_regions_eq, 1) + sy_lb;
 % sx_bulk_dist = linspace(1, 10, num_trials);
 
 % Window size
-window_fraction = 0.5 * [1, 1];
+window_fraction = 0.4 * [1, 1];
 
 % Bulk displacements (std dev)
-sx_bulk_std = 0;
-sy_bulk_std = 0;
+sx_uniform_spread = 4;
+sy_uniform_spread = 4;
 
 % Random displacements
 sx_rand = s_rand;
@@ -66,20 +65,21 @@ sy_rand = s_rand;
 % % Particle stuff
 
 % Standard deviation of particle image diameters
-d_std = 1.0;
+d_std = 0;
 
 % Mean particle diameter
-d_mean = 1 * sqrt(8) ;
+d_mean = 1.0 * sqrt(8);
 
 % Particle concentration in particles per pixel
 particle_concentration = 6E-2;
 
 % Image noise
-noise_std_fract = 5E-2;
+noise_mean_fract = 1E-1;
+noise_std_fract  = 5E-3;
 
 % Particle positions buffer
-x_buffer = -64;
-y_buffer = -64;
+x_buffer = -16;
+y_buffer = -16;
 
 % % % % %
 
@@ -140,6 +140,8 @@ max_val_mean = max_val / k;
 % Standard deviation of the noise
 noise_std = noise_std_fract * max_val_mean;
 
+noise_mean = noise_mean_fract * max_val_mean;
+
 % Loop over the NCC
 for k = 1 : num_regions_neq
 
@@ -163,18 +165,18 @@ for k = 1 : num_regions_neq
     y_neq_02 = (y_max - y_min) * rand(num_particles, 1) + y_min;
 
     % Noise matrices
-    noise_mat_neq_01      = noise_std * randn(region_height, region_width);
-    noise_mat_neq_02      = noise_std * randn(region_height, region_width);
+    noise_mat_neq_01      = noise_mean + noise_std * randn(region_height, region_width);
+    noise_mat_neq_02      = noise_mean + noise_std * randn(region_height, region_width);
 
     % % Generate the images
     %
     % % Generate the first image
-    region_neq_01 = generateParticleImage(region_height, region_width,...
-    x_neq_01, y_neq_01, dp_neq_01, particle_intensities_neq_01) + noise_mat_neq_01;
+    region_neq_01 = (generateParticleImage(region_height, region_width,...
+    x_neq_01, y_neq_01, dp_neq_01, particle_intensities_neq_01) + noise_mat_neq_01);
     %
     % Generate the second image
-    region_neq_02 = generateParticleImage(region_height, region_width,...
-    x_neq_02, y_neq_02, dp_neq_02, particle_intensities_neq_02) + noise_mat_neq_02;
+    region_neq_02 = (generateParticleImage(region_height, region_width,...
+    x_neq_02, y_neq_02, dp_neq_02, particle_intensities_neq_02) + noise_mat_neq_02);
 
     % Transforms
     F1_neq = fft2(g_win .* (region_neq_01 - mean(region_neq_01(:))));
@@ -266,14 +268,21 @@ for r = 1 : num_trials
 % Do the corresponding correlation
 for k = 1 : num_regions_eq
     
+    dx = sx_bulk + sx_rand * randn(num_particles, 1);
+    dy = sy_bulk + sy_rand * randn(num_particles, 1);
+    
+%     dx = (sx_uniform_spread) * rand(num_particles, 1) - sx_uniform_spread/2;
+%     dy = (sy_uniform_spread) * rand(num_particles, 1) - sy_uniform_spread/2;
+    
      % Particle positions (image 1)
     x_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
     y_01 = (y_max - y_min) * rand(num_particles, 1) + y_min;
     
     % Particle positions (image 2)
     % TLW
-    x_02 = x_01 + sx_bulk + sx_rand * randn(num_particles, 1);
-    y_02 = y_01 + sy_bulk + sy_rand * randn(num_particles, 1);
+    x_02 = x_01 + dx;
+    y_02 = y_01 + dy;
+
         
     % Particle diameters
     dp_eq       = d_mean + d_std * randn(num_particles, 1);
@@ -282,9 +291,9 @@ for k = 1 : num_regions_eq
     particle_intensities_eq     = d_mean ./ dp_eq;
     
     % Noise matrices
-    noise_mat_full_01 = noise_std * ...
+    noise_mat_full_01 = noise_mean + noise_std * ...
         randn(region_height + 2 * gx_range, region_width + 2 * gy_range);
-    noise_mat_full_02 = noise_std * ...
+    noise_mat_full_02 = noise_mean + noise_std * ...
         randn(region_height + 2 * gx_range, region_width + 2 * gy_range);
         
     % Shake-the-box
@@ -311,12 +320,12 @@ for k = 1 : num_regions_eq
         % % Generate the images
         %
         % % Generate the first image
-        region_eq_01 = generateParticleImage(region_height, region_width,...
-        x_eq_01, y_eq_01, dp_eq, particle_intensities_eq) + noise_mat_eq_01;
+        region_eq_01 = (generateParticleImage(region_height, region_width,...
+        x_eq_01, y_eq_01, dp_eq, particle_intensities_eq) + noise_mat_eq_01);
         %
         % Generate the second image
-        region_eq_02 = generateParticleImage(region_height, region_width,...
-        x_eq_02, y_eq_02, dp_eq, particle_intensities_eq) + noise_mat_eq_02;
+        region_eq_02 = (generateParticleImage(region_height, region_width,...
+        x_eq_02, y_eq_02, dp_eq, particle_intensities_eq) + noise_mat_eq_02);
    
         % Transforms
         F1_eq = fft2(g_win .* (region_eq_01 - mean(region_eq_01(:))));
@@ -324,6 +333,9 @@ for k = 1 : num_regions_eq
 
         % Cross correlation
         cc_cur = fftshift(F1_eq .* conj(F2_eq));
+        
+        % Full CC sum
+        cc_full_sum = cc_full_sum + cc_cur;
 
         % Divide by the particle shape
         cc_eq = cc_cur ./ particle_shape_norm;
@@ -376,38 +388,216 @@ Z = (exp(-(X - xc).^2 / (2 * sx^2)) .* exp(-(Y - yc).^2 / (2 * sy^2)));
 cc_abs_shift = abs(cc_abs_sum_sqrt - B);
 cc_abs_full_shift = abs(cc_abs_full_sum_sqrt - B);
 
+apc_filt_full = particle_shape_norm .* cc_abs_shift;
 
-subplot(1, 2, 1);
-surf(cc_abs_shift ./ max(cc_abs_shift(:)));
+
+apc_filt_full_test = particle_shape_sum .* cc_abs_sum_sqrt;
+
+apc_filt_norm_test = apc_filt_full_test ./ max(apc_filt_full_test(:));
+
+apc_filt_sub = apc_filt_full - min(apc_filt_full(:));
+apc_filt_norm = apc_filt_sub ./ max(apc_filt_sub(:));
+
+[~, ~, ~, ~, ~, apc_fit_offset, apc_fit_full] = fit_gaussian_2D(apc_filt_norm);
+apc_fit_sub = apc_fit_full - min(apc_fit_full(:));
+apc_fit_norm = apc_fit_sub ./ max(apc_fit_sub(:));
+
+
+cam_proj = 'orthographic';
+
+v = [-34, 9];
+
+lw = 1E-5;
+
+figure(1);
+% Particle shape
+subplot(2, 2, 1);
+set(gca, 'camerapositionmode', 'manual');
+surf(particle_shape_norm ./ max(particle_shape_norm(:)), 'linewidth', lw);
+camproj(cam_proj);
 % surf(real(cc_sum) ./ max(real(cc_sum(:))));
+xlim([1, region_width]);
+ylim([1, region_height]);
+zlim(1.1 * [0, 1]);
+set(gca, 'view', v);
+axis square;
+axis vis3d
+box on;
+% set(gca, 'view', [0, 0]);
+set(gca, 'FontSize', fSize_axes);
+title(sprintf(...
+    '$A \\left(k \\right) \\, , \\overline{d_p} = %0.1f$', d_mean),...
+    'interpreter', 'latex', ...
+    'fontSize', fSize_title);
+set(gca, 'ztick', [0 : 0.25 : 1]);
+set(gca, 'xtick', [16, 32, 48, 64]);
+set(gca, 'ytick', [16, 32, 48, 64]);
+set(gca, 'xticklabel', {''})
+set(gca, 'yticklabel', {''})
+set(gca, 'zticklabel', {''})
+% xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+% ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+
+
+subplot(2, 2, 2);
+% surf(cc_abs_shift ./ max(cc_abs_shift(:)), 'linewidth', lw);
+surf(cc_abs_sum_sqrt ./ max(cc_abs_sum_sqrt(:)), 'linewidth', lw);
+camproj(cam_proj);
 xlim([1, region_width]);
 ylim([1, region_height]);
 zlim(1.1 * [0, 1]);
 axis square;
 box on;
-set(gca, 'view', [0, 0]);
+set(gca, 'view', v);
+axis square;
+axis vis3d
 set(gca, 'FontSize', fSize_axes);
 title(sprintf(...
-    '$\\langle  \\left| C_c \\left( k \\right) \\right| \\rangle \\, , \\sigma_s = %0.1f$', s_rand),...
+    '$P_\\mu \\left(k\\right) \\,\\, , \\sigma_{\\Delta x} = %0.1f$', s_rand),...
     'interpreter', 'latex', ...
     'fontSize', fSize_title);
+set(gca, 'ztick', [0 : 0.25 : 1]);
+set(gca, 'xtick', [16, 32, 48, 64]);
+set(gca, 'ytick', [16, 32, 48, 64]);
+set(gca, 'xticklabel', {''})
+set(gca, 'yticklabel', {''})
+set(gca, 'zticklabel', {''})
+% xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+% ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
 
 
-subplot(1, 2, 2);
-surf(Z);
+
+subplot(2, 2, 3);
+% surf(apc_filt_norm, 'linewidth', lw);
+surf(apc_filt_norm_test, 'linewidth', lw);
 xlim([1, region_width]);
 ylim([1, region_height]);
 zlim([0, 1.1]);
 axis square;
 box on;
-set(gca, 'view', [0, 0]);
+set(gca, 'view', v);
+axis square;
+axis vis3d
+set(gca, 'view', v);
 set(gca, 'FontSize', fSize_axes);
-title('$\textrm{Gaussian Fit}$', 'interpreter', 'latex', ...
+title('$A\left(k\right) P_\mu \left(k\right)$', 'interpreter', 'latex', ...
     'FontSize', fSize_title);
-colormap winter;
+set(gca, 'ztick', [0 : 0.25 : 1]);
+set(gca, 'xtick', [16, 32, 48, 64]);
+set(gca, 'ytick', [16, 32, 48, 64]);
+set(gca, 'xticklabel', {''})
+set(gca, 'yticklabel', {''})
+set(gca, 'zticklabel', {''})
+% xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+% ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
 
 
-plot_dir = '~/Desktop/apc_plots';
+
+subplot(2, 2, 4);
+surf(apc_fit_norm, 'linewidth', lw);
+xlim([1, region_width]);
+ylim([1, region_height]);
+zlim([0, 1.1]);
+axis square;
+box on;
+set(gca, 'view', v);
+axis square;
+axis vis3d
+set(gca, 'view', v);
+set(gca, 'FontSize', fSize_axes);
+title('$\textrm{Gaussian Fit to } A\left(k\right) P_\mu \left(k\right)$', 'interpreter', 'latex', ...
+    'FontSize', fSize_title);
+set(gca, 'ztick', [0 : 0.25 : 1]);
+set(gca, 'xtick', [16, 32, 48, 64]);
+set(gca, 'ytick', [16, 32, 48, 64]);
+set(gca, 'xticklabel', {''})
+set(gca, 'yticklabel', {''})
+set(gca, 'zticklabel', {''})
+% xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+% ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+
+colormap parula;
+
+ft = 9;
+% 
+% figure(2);
+% subplot(1, 3, 1);
+% surf(apc_fit_norm, 'linewidth', lw);
+% xlim([1, region_width]);
+% ylim([1, region_height]);
+% zlim([0, 1.1]);
+% axis square;
+% box on;
+% set(gca, 'view', v);
+% axis square;
+% axis vis3d
+% set(gca, 'view', v);
+% set(gca, 'FontSize', fSize_axes);
+% title(sprintf('$\\textrm{APC} \\left(k\\right) , \\,\\, \\overline{d_p} = %0.1f , \\, \\sigma_{\\Delta x} = %0.1f$', d_mean, s_rand), 'interpreter', 'latex', ...
+%     'FontSize', ft);
+% set(gca, 'ztick', [0 : 0.25 : 1]);
+% set(gca, 'xtick', [16, 32, 48, 64]);
+% set(gca, 'ytick', [16, 32, 48, 64]);
+% set(gca, 'xticklabel', {''})
+% set(gca, 'yticklabel', {''})
+% set(gca, 'zticklabel', {''})
+% 
+% subplot(1, 3, 2);
+% R = spectralEnergyFilter(region_height, region_width, d_mean);
+% surf(R ./ max(R(:)), 'linewidth', lw);
+% xlim([1, region_width]);
+% ylim([1, region_height]);
+% zlim([0, 1.1]);
+% axis square;
+% box on;
+% set(gca, 'view', v);
+% axis square;
+% axis vis3d
+% set(gca, 'view', v);
+% set(gca, 'FontSize', fSize_axes);
+% title(sprintf('$\\textrm{Analytical RPC Filter, } \\, \\, \\overline{d_p} = %0.1f$', d_mean), 'interpreter', 'latex', ...
+%     'FontSize', ft);
+% set(gca, 'ztick', [0 : 0.25 : 1]);
+% set(gca, 'xtick', [16, 32, 48, 64]);
+% set(gca, 'ytick', [16, 32, 48, 64]);
+% set(gca, 'xticklabel', {''})
+% set(gca, 'yticklabel', {''})
+% set(gca, 'zticklabel', {''})
+% 
+% a = abs((R ./ max(R(:)) - apc_fit_norm));
+% subplot(1, 3, 3);
+% surf(a)
+% xlim([1, region_width]);
+% ylim([1, region_height]);
+% % zlim([0, 1.1]);
+% axis square;
+% box on;
+% set(gca, 'view', v);
+% axis square;
+% axis vis3d
+% set(gca, 'view', v);
+% set(gca, 'FontSize', fSize_axes);
+% title('$ \vert \mathrm{APC}\left(k\right) - \mathrm{RPC} \left(k\right) \vert$', 'interpreter', 'latex', ...
+%     'FontSize', ft);
+% set(gca, 'xtick', [16, 32, 48, 64]);
+% set(gca, 'ytick', [16, 32, 48, 64]);
+% set(gca, 'xticklabel', {''})
+% set(gca, 'yticklabel', {''})
+% zl = zlim;
+% 
+% z_tick = linspace(0, max(zl), 5);
+% set(gca, 'ztick', z_tick);
+% zlim([0, 1.1 * max(z_tick)]);
+% 
+% % set(gca, 'zticklabel', {''})
+% 
+% 
+
+
+
+
+
+plot_dir = '~/Desktop/apc_plots/quads';
 
 file_name = sprintf('apc_full_filt_h%d_w%d_sr_%0.1f.png', ...
     region_height, region_width, s_rand);

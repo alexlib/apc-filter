@@ -8,17 +8,14 @@ if do_ncc
     do_ncc = 1;
 end
 
-fSize_axes = 12;
-fSize_title = 16;
+fSize = 12;
 
 
-num_trials = 20;
+num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 1;
+num_regions_eq = 100;
 num_regions_neq = 1000;
-
-cc_abs_mad = zeros(num_regions_eq, 1);
 
 % 
 
@@ -26,31 +23,24 @@ cc_abs_mad = zeros(num_regions_eq, 1);
 region_height = 32;
 region_width = 32;
 
-% % Grid step
-gx_range = 16;
-gx_step = 16;
-
-% gx_range = 256;
-% gx_step = 32;
-
+% Grid step
+gx_range = 0;
+gx_step = 0;
 
 gy_range = gx_range;
 gy_step = gx_step;
 
 % Random displacements
-s_rand = 1;
+s_rand = 0;
 
-sx_lb = -4;
-sx_ub = 4;
-
-sy_lb = sx_lb;
-sy_ub = sx_ub;
+sx_lb = 8;
+sx_ub = 8;
 
 sx_bulk_dist = (sx_ub - sx_lb) * rand(num_trials * num_regions_eq, 1) + sx_lb;
-sy_bulk_dist = (sy_ub - sy_lb) * rand(num_trials * num_regions_eq, 1) + sy_lb;
 % sx_bulk_dist = 5 * ones(num_trials, 1);
 
 % sx_bulk_dist = linspace(1, 10, num_trials);
+
 
 % Window size
 window_fraction = 0.5 * [1, 1];
@@ -72,14 +62,14 @@ d_std = 1.0;
 d_mean = 1 * sqrt(8) ;
 
 % Particle concentration in particles per pixel
-particle_concentration = 6E-2;
+particle_concentration = 1E-2;
 
 % Image noise
-noise_std_fract = 5E-2;
+noise_std = 10E-2;
 
 % Particle positions buffer
-x_buffer = -64;
-y_buffer = -64;
+x_buffer = -100;
+y_buffer = -100;
 
 % % % % %
 
@@ -105,6 +95,8 @@ aug_height = y_max - y_min + 1;
 % Compute the total number of particles
 num_particles = round(particle_concentration * aug_height * aug_width);
 
+if do_ncc
+
 % Allocate the particle shape
 particle_shape_sum = zeros(region_height, region_width) + 1i * zeros(region_height, region_width);
 
@@ -112,34 +104,7 @@ ncc_sum = zeros(region_height, region_width) + 1i * zeros(region_height, region_
 
 ncc_cur_max = zeros(num_regions_neq, 1);
 
-% Make a test region to figure out the correct percent noise
-
-max_val = 0;
-
-for k = 1 : 1000
-% Particle diameters
-dp_neq_01       = d_mean + d_std * randn(num_particles, 1);
-% Particle intensities for the correlated images
-particle_intensities_neq_01     = d_mean ./ dp_neq_01;
-
-% Particle positions (image 1)
-x_neq_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
-y_neq_01 = (y_max - y_min) * rand(num_particles, 1) + y_min;
-
-% % Generate the first image
-region_neq_01 = generateParticleImage(region_height, region_width,...
-    x_neq_01, y_neq_01, dp_neq_01, particle_intensities_neq_01);
-
-max_val = max_val + max(region_neq_01(:));
-
-end
-
-% Average max value of the images before noise
-max_val_mean = max_val / k;
-
-% Standard deviation of the noise
-noise_std = noise_std_fract * max_val_mean;
-
+ 
 % Loop over the NCC
 for k = 1 : num_regions_neq
 
@@ -177,8 +142,8 @@ for k = 1 : num_regions_neq
     x_neq_02, y_neq_02, dp_neq_02, particle_intensities_neq_02) + noise_mat_neq_02;
 
     % Transforms
-    F1_neq = fft2(g_win .* (region_neq_01 - mean(region_neq_01(:))));
-    F2_neq = fft2(g_win .* (region_neq_02 - mean(region_neq_02(:))));
+    F1_neq = fft2(g_win .* region_neq_01);
+    F2_neq = fft2(g_win .* region_neq_02);
 
     % Autocorrelations
     ac_01_neq = fftshift(F1_neq .* conj(F1_neq));
@@ -193,8 +158,7 @@ for k = 1 : num_regions_neq
     ncc_cur_max(k) = max(real(ncc_cur(:)));
     
     % Particle shape current
-%     particle_shape_cur = ac_mean - ncc_cur;
-    particle_shape_cur = ac_mean;
+    particle_shape_cur = ac_mean - ncc_cur;
     
     % Sum
     ncc_sum = ncc_sum + ncc_cur;
@@ -208,7 +172,7 @@ end
 % Note that we don't want to force the minimum to zero
 % Because that will cause the edges to blow up
 % whenever we divide by it.
-particle_shape_norm = real(particle_shape_sum ./ max(particle_shape_sum(:)));
+particle_shape_norm = particle_shape_sum ./ max(particle_shape_sum(:));
 
 % % This line works!!!!
 ncc_div = ncc_sum ./ particle_shape_sum;
@@ -216,71 +180,75 @@ ncc_div = ncc_sum ./ particle_shape_sum;
 % Normalize the NCC so that its maximum is one.
 ncc_norm = ncc_div ./ max(ncc_div(:));
 
-% Full NCC, which is not divided by the particle shape
-ncc_full_norm = ncc_sum ./ max(real(ncc_sum(:)));
+% 
+% [AMPLITUDE, STD_DEV_Y, STD_DEV_X, YC, XC, B, ncc_peak_fit] = fit_gaussian_2D(real(ncc_norm), 5);
 
-% Allocate the CC sums
+% ncc_fit_sub = ncc_peak_fit - B;
+
+% ncc_fit_norm = ncc_fit_sub ./ max(ncc_fit_sub(:));
+
+% this worked when it was uncommented. Dealt with noise.
+% Uncomment this.
+ncc_fit_norm = ncc_norm;
+
+% ncc_norm = (ncc_sum ./ particle_shape_sum) ./ num_regions_neq;
+
+% % % % This line works
+% ncc_norm = ncc_sum ./ max(ncc_sum(:));
+
+end
+
+cc_sum = zeros(region_height, region_width) + ...
+    1i * zeros(region_height, region_width);
+
 cc_abs_sum = zeros(region_height, region_width);
-cc_abs_full_sum = zeros(region_height, region_width);
+cc_cur_max = zeros(num_regions_eq, 1);
+cc_abs_sum_02 = zeros(region_height, region_width);
 
-% Shake-the-box shfting coordinates
+% sx_bulk = sx_bulk_mean;
+% sy_bulk = 0;
+
+cc_peak_cols = (xc - 3) : (xc + 3);
+cc_peak_rows = (yc - 3) : (yc + 3);
+
+sy_bulk = 0;
+
+
 gx_shift = -1 * gx_range : gx_step : gx_range;
 gy_shift = -1 * gx_range : gx_step : gx_range;
 
+[GX, GY] = meshgrid(gx_shift, gy_shift);
+
 if isempty(gx_shift)
-    gx_shift = 0;
+    GX = 0;
 end
 
 if isempty(gy_shift)
-    gy_shift = 0;
+    GY = 0;
 end
-
-[GX, GY] = meshgrid(gx_shift, gy_shift);
-
 
 
 for r = 1 : num_trials
     
-    % Random mean displacements
+        % Random mean displacements
     sx_bulk = sx_bulk_dist(r);
-    sy_bulk = sy_bulk_dist(r);
     
-     % Inform the user
     fprintf(1, 'Trial %d of %d, sx bulk = %0.2f\n', r, num_trials, sx_bulk);
-    
-    % Allocate running CC sum for the CCC
+
     cc_sum = zeros(region_height, region_width) + ...
         1i * zeros(region_height, region_width);
-    
-    % Allocate running CC sum for the CC minus the NCC
-    cc_full_sum = zeros(region_height, region_width) + ...
-        1i * zeros(region_height, region_width);
-    
-    
-    cc_abs_cur_new = zeros(region_height, region_width);
-    
-    cc_test = zeros(region_height, region_width);
 
+    
 % Do the corresponding correlation
 for k = 1 : num_regions_eq
     
      % Particle positions (image 1)
     x_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
     y_01 = (y_max - y_min) * rand(num_particles, 1) + y_min;
-    
-    
-%     v = zeros(size(x_01));
-%     u = sx_bulk * sin(4 * y_01 / region_height * 2 * pi);
-    
 
     % Particle positions (image 2)
-    % TLW
     x_02 = x_01 + sx_bulk + sx_rand * randn(num_particles, 1);
     y_02 = y_01 + sy_bulk + sy_rand * randn(num_particles, 1);
-    
-%     x_02 = x_01 + u + sx_rand * randn(num_particles, 1);
-%     y_02 = y_01 + v + sy_rand * randn(num_particles, 1);
-
     
     % Particle diameters
     dp_eq       = d_mean + d_std * randn(num_particles, 1);
@@ -294,11 +262,8 @@ for k = 1 : num_regions_eq
     noise_mat_full_02 = noise_std * ...
         randn(region_height + 2 * gx_range, region_width + 2 * gy_range);
         
-    % Shake-the-box
+    
     for p = 1 : length(GX(:))
-        
-        cc_abs_cur_old = cc_abs_cur_new;
-        
         x_eq_01 = x_01 + GX(p);
         x_eq_02 = x_02 + GX(p);
         
@@ -326,7 +291,7 @@ for k = 1 : num_regions_eq
         % Generate the second image
         region_eq_02 = generateParticleImage(region_height, region_width,...
         x_eq_02, y_eq_02, dp_eq, particle_intensities_eq) + noise_mat_eq_02;
-   
+
         % Transforms
         F1_eq = fft2(g_win .* region_eq_01);
         F2_eq = fft2(g_win .* region_eq_02);
@@ -337,50 +302,22 @@ for k = 1 : num_regions_eq
         % Max value
         cc_div = cc_cur ./ particle_shape_norm;
 
-        % Effective number of particles in the divided CC
-        N_div = sqrt(max(abs(cc_div(:))));
-        
-        % Effective number of particles in the raw CC
-        N_raw = sqrt(max(abs(cc_cur(:))));
+        % Effective number of particles
+        N = sqrt(max(abs(cc_div(:))));
 
         % Real and imaginary parts of corrected CC
-        cc_eq_real = real(cc_cur) ./ real(particle_shape_norm) - real((N_div^2 - 1 * N_div) * (ncc_norm));
+        cc_eq_real = real(cc_cur) ./ real(particle_shape_norm) - real((N^2 - 1 * N) * (ncc_fit_norm));
         cc_eq_imag = imag(cc_cur) ./ real(particle_shape_norm);
 
         % Complex corrected CC
         cc_eq = cc_eq_real + 1i * cc_eq_imag;
-        
-        % Full CC minus the NCC
-        cc_eq_full = cc_cur - real((N_raw^2 - N_raw)/N_raw^2 * ncc_full_norm);
 
+    %     cc_eq(cc_peak_rows, cc_peak_cols) = 0;
         % Ensemble corresponding correlation
-        % (divided by particle shape, minus NCC)
+        % This line works
         cc_sum = cc_sum + cc_eq;
-        
-        %  Ensemble corresponding correlation 
-        % (minus NCC, without dividing by particle shape)
-        cc_full_sum = cc_full_sum + cc_eq_full;
-        
-        cc_test = abs(cc_sum);
-        
-%         surf(cc_test ./ max(cc_test(:)));
-%         axis square;
-%         xlim([1, region_width]);
-%         ylim([1, region_height]);
-%         zlim(1.1 * [0, 1]);
-%         drawnow;
-%         
-        
-        
-        cc_abs_cur_new = abs(cc_sum) ./ max(abs(cc_sum(:)));
-        cc_abs_diff = abs((cc_abs_cur_new(:) - cc_abs_cur_old(:)) ./ cc_abs_cur_old(:));
-        
-        cc_abs_mad(k) = mean(cc_abs_diff);
-        
-%         surf(cc_abs_cur_new);
-%         pause();
-%         
-        fprintf(1, 'CC abs mad = %0.4f\n', cc_abs_mad(k));
+
+        cc_abs_sum_02 = cc_abs_sum_02 + abs(cc_eq).^2;
 
     end
     
@@ -390,32 +327,24 @@ end
 % This means we're taking the magnitude after summing.
 cc_abs_sum = cc_abs_sum + (abs(cc_sum)).^2;
 
-% Add the sum of the CCC without division by particle shape
-cc_abs_full_sum = cc_abs_full_sum + (abs(cc_full_sum).^2);
 
-% keyboard;
+
 
 end
 
-% Square roots
+% Square root
 cc_abs_sum_sqrt = sqrt(cc_abs_sum);
-cc_abs_full_sum_sqrt = sqrt(cc_abs_full_sum);
 
 
-% Fit the NCC
+% for k = 1 : 1 : size(g, 3);
+%     
+%     g_plot = g(:, :, k);
+%     
+%     surf(g_plot ./ max(g_plot(:))); 
+%     drawnow; 
+% end;
+
 [A, sy, sx, YC, XC, B, ARRAY] = fit_gaussian_2D(cc_abs_sum_sqrt);
-
-% Fit the particle shape
-[~, ~, ~, ~, ~, B_p, particle_shape_peak_fit] = fit_gaussian_2D(particle_shape_norm);
-
-p_n = particle_shape_norm - B_p;
-
-apc_filt = ARRAY - B;
-
-filt_full = apc_filt ./ max(apc_filt(:)) .* p_n ./ max(p_n(:));
-
-% Fit the NCC * Particle
-% [A, sy, sx, YC, XC, B, ARRAY] = fit_gaussian_2D(cc_abs_full_sum_sqrt);
 
 fprintf(1, 'stdx = %0.2f, stdy = %0.2f\n', sx, sy);
 
@@ -427,7 +356,8 @@ yv = (1 : region_height);
 Z = (exp(-(X - xc).^2 / (2 * sx^2)) .* exp(-(Y - yc).^2 / (2 * sy^2)));
 
 cc_abs_shift = abs(cc_abs_sum_sqrt - B);
-cc_abs_full_shift = abs(cc_abs_full_sum_sqrt - B);
+
+
 
 
 subplot(1, 2, 1);
@@ -437,14 +367,7 @@ xlim([1, region_width]);
 ylim([1, region_height]);
 zlim(1.1 * [0, 1]);
 axis square;
-box on;
 set(gca, 'view', [0, 0]);
-set(gca, 'FontSize', fSize_axes);
-title(sprintf(...
-    '$\\langle  \\left| C_c \\left( k \\right) \\right| \\rangle \\, , \\sigma_s = %0.1f$', s_rand),...
-    'interpreter', 'latex', ...
-    'fontSize', fSize_title);
-
 
 subplot(1, 2, 2);
 surf(Z);
@@ -452,29 +375,44 @@ xlim([1, region_width]);
 ylim([1, region_height]);
 zlim([0, 1.1]);
 axis square;
-box on;
 set(gca, 'view', [0, 0]);
-set(gca, 'FontSize', fSize_axes);
-title('$\textrm{Gaussian Fit}$', 'interpreter', 'latex', ...
-    'FontSize', fSize_title);
-colormap winter;
 
 
-plot_dir = '~/Desktop/apc_plots';
 
-file_name = sprintf('apc_full_filt_h%d_w%d_sr_%0.1f.png', ...
-    region_height, region_width, s_rand);
-file_path = fullfile(plot_dir, file_name);
 
+% % Plot
+% subplot(1, 2, 1);
+% surf(real(cc_sum) ./ max(real(cc_sum(:))));
+% set(gca, 'view', [0, 0]);
+% axis square
+% xlim([1, region_width]);
+% ylim([1, region_height]);
+% zlim(1.05 * [-1, 1]);
+% title({'Ensemble CCC' , sprintf('$\\Delta s = %0.1f, \\sigma_s = %0.1f$', ...
+%     sx_bulk_mean, sx_rand)}, 'interpreter', 'latex', 'fontsize', 16);
 % 
-% do_print = input('Print? [y/N]\n', 's');
-% switch lower(do_print)
-%     case 'y'
-%         print(1, '-dpng', '-r300', file_path);
-%     otherwise
-% end
 % 
-%         
+% % Plot
+% subplot(1, 2, 2);
+% surf(real(cc_abs_sum_sqrt) ./ max(cc_abs_sum_sqrt(:)));
+% set(gca, 'view', [0, 0]);
+% axis square
+% xlim([1, region_width]);
+% ylim([1, region_height]);
+% zlim(1.05 * [0, 1]);
+% title({'Ensemble CCC mag' , sprintf('$\\Delta s = %0.1f, \\sigma_s = %0.1f$', ...
+%     sx_bulk_mean, sx_rand)}, 'interpreter', 'latex', 'fontsize', 16);
+% 
+% print(1, '-dpng', '-r200', sprintf('~/Desktop/figures_04/fig_sx_%0.2f.png', sx_bulk));
+
+
+
+
+
+
+
+
+
 
 
 
