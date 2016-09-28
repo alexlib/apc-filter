@@ -15,7 +15,7 @@ fSize_title = 12;
 num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 2000;
+num_regions_eq = 1000;
 num_regions_neq = 1000;
 
 cc_abs_mad = zeros(num_regions_eq, 1);
@@ -58,8 +58,8 @@ sy_bulk_dist = (sy_ub - sy_lb) * rand(num_trials * num_regions_eq, 1) + sy_lb;
 window_fraction = 0.4 * [1, 1];
 
 % Bulk displacements (std dev)
-sx_uniform_spread = 4;
-sy_uniform_spread = 4;
+sx_uniform_spread = 8;
+sy_uniform_spread = 8;
 
 % Random displacements
 sx_rand = s_rand;
@@ -271,11 +271,11 @@ for r = 1 : num_trials
 % Do the corresponding correlation
 for k = 1 : num_regions_eq
     
-    dx = sx_bulk + sx_rand * randn(num_particles, 1);
-    dy = sy_bulk + sy_rand * randn(num_particles, 1);
+%     dx = sx_bulk + sx_rand * randn(num_particles, 1);
+%     dy = sy_bulk + sy_rand * randn(num_particles, 1);
     
-%     dx = (sx_uniform_spread) * rand(num_particles, 1) - sx_uniform_spread/2;
-%     dy = (sy_uniform_spread) * rand(num_particles, 1) - sy_uniform_spread/2;
+    dx = (sx_uniform_spread) * rand(num_particles, 1) - sx_uniform_spread/2;
+    dy = (sy_uniform_spread) * rand(num_particles, 1) - sy_uniform_spread/2;
     
      % Particle positions (image 1)
     x_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
