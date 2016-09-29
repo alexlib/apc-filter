@@ -15,10 +15,12 @@ fSize_title = 12;
 num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 1000;
+num_regions_eq = 5000;
 num_regions_neq = 1000;
 
 cc_abs_mad = zeros(num_regions_eq, 1);
+
+
 
 % 
 
@@ -29,6 +31,16 @@ region_width  = 64;
 gx_range = 0;
 gx_step = 0;
 
+
+% Center pixels
+xc = fourier_zero(region_width);
+yc = fourier_zero(region_height);
+
+% Coordinates
+x = (1 : region_width) - xc;
+y = (1 : region_height) - yc;
+
+
 % gx_range = 256;
 % gx_step = 32;
 
@@ -37,10 +49,25 @@ gy_range = gx_range;
 gy_step = gx_step;
 
 % Random displacements
-s_rand = 1;
+s_rand = 0;
 
-sx_lb =  5;
-sx_ub =  5;
+%
+%
+%
+%
+% Bulk displacements (std dev)
+sx_uniform_spread = region_width / 10;
+sy_uniform_spread = 0;
+%
+%
+x_dist = rectpuls(x, sx_uniform_spread);
+y_dist = rectpuls(y, sy_uniform_spread);
+
+dx_dist = y_dist' * x_dist;
+
+
+sx_lb =  -sx_uniform_spread/2;
+sx_ub =  -sx_uniform_spread/2;
 
 sy_lb = sx_lb;
 sy_ub = sx_ub;
@@ -55,11 +82,9 @@ sy_bulk_dist = (sy_ub - sy_lb) * rand(num_trials * num_regions_eq, 1) + sy_lb;
 % sx_bulk_dist = linspace(1, 10, num_trials);
 
 % Window size
-window_fraction = 0.4 * [1, 1];
+window_fraction = 1 * [1, 1];
 
-% Bulk displacements (std dev)
-sx_uniform_spread = 8;
-sy_uniform_spread = 8;
+
 
 % Random displacements
 sx_rand = s_rand;
@@ -71,14 +96,14 @@ sy_rand = s_rand;
 d_std = 0;
 
 % Mean particle diameter
-d_mean = 1.0 * sqrt(8);
-
+d_mean = 1 * sqrt(8);
+% d_mean = 1;
 % Particle concentration in particles per pixel
 particle_concentration = 6E-2;
 
 % Image noise
 noise_mean_fract = 1E-1;
-noise_std_fract  = 5E-3;
+noise_std_fract  = 5E-4;
 
 % Particle positions buffer
 x_buffer = -16;
@@ -86,13 +111,11 @@ y_buffer = -16;
 
 % % % % %
 
-% Center pixels
-xc = (region_width  + 1) / 2 + 0.5 * (1 - mod(region_width,  2));
-yc = (region_height + 1) / 2 + 0.5 * (1 - mod(region_height, 2));
 
 
 % Window
 g_win = gaussianWindowFilter([region_height, region_width], window_fraction, 'fraction');
+g_win_ft = abs(fftshift(fft2(fftshift(g_win))));
 % g_win = rect_lowpass_2D([region_height, region_width], [0.5, 0.5], 'fraction');
 
 % Particle position max and min
@@ -273,20 +296,26 @@ for k = 1 : num_regions_eq
     
 %     dx = sx_bulk + sx_rand * randn(num_particles, 1);
 %     dy = sy_bulk + sy_rand * randn(num_particles, 1);
-    
-    dx = (sx_uniform_spread) * rand(num_particles, 1) - sx_uniform_spread/2;
-    dy = (sy_uniform_spread) * rand(num_particles, 1) - sy_uniform_spread/2;
-    
+
      % Particle positions (image 1)
     x_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
     y_01 = (y_max - y_min) * rand(num_particles, 1) + y_min;
+    
+    % Shearing
+    dx = sx_bulk + sx_uniform_spread * y_01 / region_height;
+    dy = sy_bulk + zeros(size(dx));
+    
+        
+    % Uniform distribution
+%     dx = (sx_uniform_spread) * rand(num_particles, 1) - sx_uniform_spread/2;
+%     dy = (sy_uniform_spread) * rand(num_particles, 1) - sy_uniform_spread/2;
+%     dy = zeros(size(dx));
     
     % Particle positions (image 2)
     % TLW
     x_02 = x_01 + dx;
     y_02 = y_01 + dy;
 
-        
     % Particle diameters
     dp_eq       = d_mean + d_std * randn(num_particles, 1);
 
@@ -465,6 +494,7 @@ set(gca, 'ytick', [16, 32, 48, 64]);
 set(gca, 'xticklabel', {''})
 set(gca, 'yticklabel', {''})
 set(gca, 'zticklabel', {''})
+set(gca, 'view', [0, 0]);
 % xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
 % ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
 
@@ -521,18 +551,6 @@ set(gca, 'zticklabel', {''})
 
 colormap parula;
 
-ft = 9;
-
-figure; 
-subplot(1, 2, 1); 
-rsurf(real(cc_full_sum));
-box on
-set(gca, 'view', [0, 0]);
-
-subplot(1, 2, 2);
-rsurf(imag(cc_full_sum));
-box on
-set(gca, 'view', [0, 0]);
 
 % 
 % figure(2);
