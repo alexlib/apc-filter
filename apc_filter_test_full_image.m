@@ -5,7 +5,7 @@ fSize_axes = 12;
 fSize_title = 16;
 
 % Image directory
-img_repo = '~/Desktop/piv_test_images';
+img_repo = '~/Desktop/piv_test_images/synthetic';
 
 % Give this case a name
 case_name = 'test_case';

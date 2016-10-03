@@ -143,21 +143,21 @@ APC_STD_Y = zeros(num_regions, 1);
 % This is a complex array. 
 % This could be large in memory, be careful.
 spectral_correlation_array = ...
-    zeros([region_height, region_width], num_regions) + ...
-    1i * zeros([region_height, region_width], num_regions);
+    zeros(region_height, region_width, num_regions) + ...
+        1i * zeros(region_height, region_width, num_regions);
 
 % Loop over all the images.
 for p = 1 : num_images
     
+     % Inform the user.
+    fprintf(1, 'On image %d of %d\n', p, num_images);
+
     % Load the images from disk.
     image_01 = double(imread(image_list_01{p}));
     image_02 = double(imread(image_list_02{p}));
 
 % Loop over all the interrogation regions.
     for k = 1 : num_regions
-    
-        % Inform the user.
-        fprintf(1, 'On region %d of %d\n', k, num_regions);
 
         % Allocate running correlation sum.
         % This is re-zeroed for each region
@@ -207,17 +207,35 @@ end % End (for p = 1 : num_images)
 
 % Take the magnitude of
 % the summed correlation. 
-complex_correlation_magnitude = abs(complex_correlation_sum);
+complex_correlation_magnitude = abs(spectral_correlation_array);
 
 % Do the Gaussian fitting
 for k = 1 : num_regions
+    
+    cc_mag = complex_correlation_magnitude(:, :, k);
+    cc_mag_shift = cc_mag - min(cc_mag(:));
+    cc_mag_norm  = cc_mag_shift ./ max(cc_mag_shift(:));
+    
+    % Inform the user
+    fprintf(1, 'Fitting region %d of %d\n', k, num_regions);
     
     % Fit a Gaussian to this
     % since, let's be honest, 
     % it's probably Gaussian...
     % Because what isn't these days
-    [~, APC_STD_Y(k), APC_STD_X(k)] =...
-    fit_gaussian_2D(complex_correlation_magnitude);
+    [~, APC_STD_Y(k), APC_STD_X(k), ~, ~, DOFF, f_raw] =...
+    fit_gaussian_2D(cc_mag_norm);
+% 
+%     f_shift = f_raw - DOFF;
+%     f_norm = f_shift ./ max(f_shift(:));
+%     surf(f_norm); 
+%     axis square;
+%     set(gca, 'view', [0, 0]);
+%     xlim([1, region_width]);
+%     ylim([1, region_height]);
+%     zlim([0, 1.1]);
+%     drawnow;
+    
    
 end
 
