@@ -18,8 +18,8 @@ if ~exist(image_dir, 'dir')
     mkdir(image_dir)
 end;
 
-num_digits = 4;
-image_ext = '.tiff';
+num_digits = 6;
+image_ext = '.tif';
 start_image = 1;
 end_image = 1;
 skip_image = 1;
@@ -84,7 +84,6 @@ grid_y = 128;
 % Grid buffers
 grid_buffer_x = (region_width  + shuffle_range_x) * [1, 1];
 grid_buffer_y = (region_height + shuffle_range_y) * [1, 1];
-
 
 % Window stuff
 window_fraction = 0.4 * [1, 1];

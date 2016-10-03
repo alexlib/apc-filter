@@ -14,7 +14,7 @@ fSize = 12;
 num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 5000;
+num_regions_eq = 20;
 num_regions_neq = 1000;
 
 % 
@@ -31,7 +31,7 @@ gy_range = gx_range;
 gy_step = gx_step;
 
 % Random displacements
-s_rand = 1;
+s_rand = 0.1;
 
 sx_lb = 5;
 sx_ub = 5;

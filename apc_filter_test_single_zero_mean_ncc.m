@@ -15,7 +15,7 @@ fSize_title = 12;
 num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 5000;
+num_regions_eq = 20;
 num_regions_neq = 1000;
 
 cc_abs_mad = zeros(num_regions_eq, 1);
