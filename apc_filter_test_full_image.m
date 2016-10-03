@@ -1,6 +1,5 @@
-addpaths;
+addpaths('..');
 % clear;
-
 
 fSize_axes = 12;
 fSize_title = 16;
