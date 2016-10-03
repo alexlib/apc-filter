@@ -78,8 +78,8 @@ shuffle_step =  [shuffle_step_y,  shuffle_step_x];
 
 % Grid stuff
 % Grid spacing
-grid_x = 8;
-grid_y = 64;
+grid_x = 128;
+grid_y = 128;
 
 % Grid buffers
 grid_buffer_x = (region_width  + shuffle_range_x) * [1, 1];
@@ -155,7 +155,7 @@ gym = reshape(gy, [length(unique(gy)), length(unique(gx))]);
 
 % Calculate the filters
 [APC_STD_Y, APC_STD_X] = ...
-    calculate_apc_filter_from_image_pair_02(image_01, image_02, ...
+    calculate_apc_filter_from_image_pair(image_01, image_02, ...
     gym, gxm, [region_height, region_width], window_fraction, shuffle_range, shuffle_step);
 
 % imagesc(image_01);
