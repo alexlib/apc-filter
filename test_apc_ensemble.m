@@ -14,7 +14,7 @@ image_base_name = 'poiseuille_';
 num_digits = 6;
 image_ext = '.tiff';
 start_image = 1;
-end_image = 100;
+end_image = 110;
 skip_image = 2;
 c_step = 1;
 
@@ -72,7 +72,7 @@ grid_buffer_x = grid_spacing_x * [1, 1];
     grid_spacing, grid_buffer_y, grid_buffer_x);
 
 % Do the APC
-[APC_STD_Y, APC_STD_X] = ...
+[APC_STD_Y, APC_STD_X, disp_pdf_std_dev_y, disp_pdf_std_dev_x] = ...
     calculate_apc_filter_ensemble(image_list_01, image_list_02, ...
     grid_y, grid_x, region_size,...
     window_fraction, shuffle_range, shuffle_step);
@@ -99,7 +99,7 @@ plot([0, max(grid_x(:))], rpc_dia * [1, 1], '--k', 'linewidth', 3);
 hold off
 axis square
 
-num_ens = 25;
+num_ens = 100;
 
 % Now do the correlations with the calculated filters.
 % This will be moved into its own function.

@@ -1,4 +1,4 @@
-function [APC_STD_Y, APC_STD_X, disp_pdf_std_dev_y, disp_pdf_std_dev_x] = ...
+function [APC_STD_Y, APC_STD_X, DX_STD_DEV_Y, DX_STD_DEV_X] = ...
     calculate_apc_filter_ensemble(image_list_01, image_list_02, ...
     grid_y, grid_x, region_size, window_fraction, shuffle_range, shuffle_step)
 % APC_STD_Y, APC_STD_X, APC_FILTER] = ...
@@ -9,17 +9,22 @@ function [APC_STD_Y, APC_STD_X, disp_pdf_std_dev_y, disp_pdf_std_dev_x] = ...
 % of Gaussian-shaped spectral filters from a pair of images
 %
 % INPUTS
-%     image_01: [M x N] array containing the image data
-%         the first image in the pair.
+%     image_list_01: This is a cell array containing the paths
+%       to images the filesystem. Each element
+%       in the cell array is a string that specifies
+%       the path to an image. The images refered to
+%       in image_list_01 specify the first image
+%       in each pair of images. See below for example usage.
 % 
-%     image_02: [M x N] array containing the image data
-%         the second image in the pair.
+%     image_02: Same as image_list_02, but specifying
+%       the paths to the second image in each pair.
 % 
-%     grid_y: Array or vector containing the pixel
+%     grid_y: 2D Array or 1D vector containing the pixel
 %         row coordinates of the interrogation regions
 %         at which the filters will be calculated.
+%         Note: Grids can be created using the function gridImage()
 % 
-%     grid_x: Array or vector containing the pixel
+%     grid_x: 2D Array or 1D vector containing the pixel
 %         column coordinates of the interrogation regions
 %         at which the filters will be calculated.
 % 
@@ -34,18 +39,25 @@ function [APC_STD_Y, APC_STD_X, disp_pdf_std_dev_y, disp_pdf_std_dev_x] = ...
 %         0 specifies the image is completely apodized in that direction
 %         and 1 specifies the image is un-apodized. 
 %         window_fraction = [window_fraction_rows, window_fraction_cols];
+%         The window will be created using the function
+%         gaussianWindowFilter().
+%         For example, to create a 50% window (i.e., a 
+%         64x64 window on a 128x128 region), 
+%         then set window_fraction = 0.5 * [1, 1];
 % 
 %     shuffle_range: [2 x 1] vector specifying the row and column 
 %         range across which each interrogation is shifted for calculating
 %         the filter. This is the range of the shake-the-box analog for this
 %         method. 
 %         shuffle_range = [shuffle_range_rows, shuffle_rows_cols];
+%         If no value is input then this defaults to zero.
 % 
 %     shuffle_step: [2 x 1] vector specifying the row and column 
 %         spacing between shifted locations of regions for calculating
 %         the filter. This is the spacing of the of the shake-the-box
 %         analog for this method. 
 %         shuffle_step = [shuffle_step_rows, shuffle_step_cols];
+%         % If no value is input then this defaults to zero.
 % 
 % OUTPUTS
 %     APC_STD_Y = Vector containing the standard deviations
@@ -62,7 +74,31 @@ function [APC_STD_Y, APC_STD_X, disp_pdf_std_dev_y, disp_pdf_std_dev_x] = ...
 %         to the order of the grid points located
 %         at [grid_y(:), grid_x(:)].
 %
+%     DX_STD_DEV_Y = Vector containing the standard deviations
+%       of the distribution of vertical displacements in
+%       the interrogation regions centered about each grid point.
+%       This code assumes that distributions are Gaussian.
 %
+%     DX_STD_DEV_X = Vector containing the standard deviations
+%       of the distribution of horizontal displacements in
+%       the interrogation regions centered about each grid point.
+%       This code assumes that distributions are Gaussian.
+% 
+% SEE ALSO
+%     gridImage; subpixel, fit_gaussian_2D, extractSubRegions
+% 
+
+% Default to not shuffling
+% the interrogation regions.
+if nargin < 8
+    shuffle_step = 0;
+end
+
+% Default to not shuffling
+% the interrogation regions.
+if nargin < 7
+    shuffle_range = 0;
+end;
 
 % This is the number of images that will be correlated.
 num_images = length(image_list_01);
@@ -139,9 +175,8 @@ APC_STD_Y = zeros(num_regions, 1);
 
 % Allocate arrays to hold the
 % displacement PDF vectors.
-disp_pdf_std_dev_y = zeros(num_regions, 1);
-disp_pdf_std_dev_x = zeros(num_regions, 1);
-
+DX_STD_DEV_Y = zeros(num_regions, 1);
+DX_STD_DEV_X = zeros(num_regions, 1);
 
 % Allocate array to hold all of the ensemble subregions. 
 % This is a complex array. 
@@ -250,8 +285,7 @@ parfor k = 1 : num_regions
     auto_corr = auto_correlation_array(:, :, k);
     
     % This is the cross correlation divided by the auto correlation
-    cc_div = spectral_corr ./ ...
-        auto_corr;
+    cc_div = spectral_corr ./ auto_corr;
  
     % Fit a Gaussian function to the remaining magnitude
     % which should represent the Fourer transform
@@ -261,15 +295,14 @@ parfor k = 1 : num_regions
         fit_gaussian_2D(abs(cc_div));
     
     % Convert the PDF standard deviations in to pixels per frame.
-    disp_pdf_std_dev_y(k) = pi^2 / (ft_pdf_std_dev_y);
-    disp_pdf_std_dev_x(k) = pi^2 / (ft_pdf_std_dev_x);
+    DX_STD_DEV_Y(k) = pi^2 / (ft_pdf_std_dev_y);
+    DX_STD_DEV_X(k) = pi^2 / (ft_pdf_std_dev_x);
     
     % Fit a Gaussian function to the magnitude
     % of the complex correlation, 
     % which should represent the SNR versus wavenumber.
     [~, APC_STD_Y(k), APC_STD_X(k)] =...
         fit_gaussian_2D(abs(spectral_corr));
-
    
 end
 
