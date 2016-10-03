@@ -1,6 +1,11 @@
-function [APC_STD_Y, APC_STD_X] = ...
-    calculate_apc_filter_from_image_pair_02(image_01, image_02, ...
+function [APC_STD_Y, APC_STD_X, APC_FILTER] = ...
+    calculate_apc_filter_from_image_pair(image_01, image_02, ...
     grid_y, grid_x, region_size, window_fraction, shuffle_range, shuffle_step)
+% APC_STD_Y, APC_STD_X, APC_FILTER] = ...
+%     calculate_apc_filter_from_image_pair(image_01, image_02, ...
+%     grid_y, grid_x, region_size, window_fraction, shuffle_range, shuffle_step)
+% 
+% CALCULATE_APC_FILTER_FROM_IMAGE_PAIR
 
 % % Extract grid coordinates
 gy = grid_y(:);
@@ -18,7 +23,6 @@ region_width = region_size(2);
 g_win = gaussianWindowFilter(...
     [region_height, region_width], ...
     window_fraction, 'fraction');
-
 
 % Default to a single shuffle range.
 if length(shuffle_range) == 1
@@ -112,36 +116,24 @@ for k = 1 : num_regions
         
     end
     
-    
     % Take the magnitude of
     % the summed correlation. 
     cc_mag = abs(cc_sum);
-    
-
-    
     
     % Fit a Gaussian to this
     % since, let's be honest, 
     % it's probably Gaussian...
     % Because what isn't these days
-    [~, APC_STD_Y(k), APC_STD_X(k), ~, ~, OFFSET, ARRAY] =...
+    [~, APC_STD_Y(k), APC_STD_X(k), ~, ~, filter_offset, filter_raw] =...
     fit_gaussian_2D(cc_mag);
-
-%     pp_sub = ARRAY - OFFSET;
-%     pp_norm = pp_sub ./ max(pp_sub(:));
-% 
-%     surf(pp_norm);
-%     xlim([1, region_width]);
-%     ylim([1, region_height]);
-%     zlim(1.1 * [0, 1]);
-%     axis square;
-%     box on;
-%     set(gca, 'view', [0, 0]);
-%     title(sprintf('GX: %d\t GY: %d: ', gx(k), gy(k)), ...
-%         'fontsize', 20);
-%     drawnow();
-%     
     
+    % Subtract the minimum from the fit
+    filter_sub = filter_raw - filter_offset;
+  
+    % Divide by the max so that the
+    % range of the filter is [0, 1]
+    APC_FILTER = filter_sub - max(filter_sub(:));
+      
 end
 
 
