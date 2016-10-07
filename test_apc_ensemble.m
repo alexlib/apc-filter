@@ -16,11 +16,11 @@ image_base_name = sprintf('poiseuille_diffusion_%0.2f_', diffusion_std);
 num_digits = 6;
 image_ext = '.tiff';
 start_image = 1;
-end_image = 100;
+end_image = 20;
 skip_image = 2;
 c_step = 1;
 
-rpc_diameter = 6.0;
+rpc_diameter = 3.0;
 
 % image_dir = '/Users/matthewgiarra/Desktop/Ball';
 % image_base_name = 'poiseuille_diffusion_3.00_';
@@ -118,8 +118,10 @@ apc_filt_rep = exp(-(x.^2) / (2 * sx_apc_01^2)) .* exp(-(y.^2) / (2 * sy_apc_01^
  
 rpc_dia = sqrt(rpc_std_y^2 + rpc_std_x^2);
 
-ens_lengths = [1, 5, 10, 15, 20, 50];
-ens_lengths = 2 : 4;
+% ens_lengths = [1, 5, 10, 15, 20, 50];
+% ens_lengths = 2 : 4;
+
+ens_lengths = 10;
 
 for e = 1 : length(ens_lengths)
     
@@ -143,8 +145,6 @@ for e = 1 : length(ens_lengths)
     scc_ensemble_spatial_full_image(image_list_01(1:num_ens), image_list_02(1:num_ens), ...
     grid_y, grid_x, region_size, window_fraction);
 
-
-
 Scale = 10;
 lw = 2;
 fSize = 16;
@@ -165,7 +165,6 @@ ty_scc_mat = reshape(ty_scc, ny, nx);
 
 x_inds = 1 : Skip_x : nx;
 y_inds = 1 : Skip_y : ny;
-
 
 % Average the velocity profiles
 tx_mean_apc = mean(tx_apc_mat, 2);

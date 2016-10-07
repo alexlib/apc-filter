@@ -12,7 +12,6 @@ skip_image = JobFile.Images.Skip;
 img_trailer_01 = JobFile.Images.Trailer_01;
 img_trailer_02 = JobFile.Images.Trailer_02;
 
-
 c_step = JobFile.Parameters.Processing.CorrelationStep;
 region_width = JobFile.Parameters.Processing.RegionWidth;
 region_height = JobFile.Parameters.Processing.RegionHeight;
@@ -76,8 +75,6 @@ grid_spacing = [grid_spacing_y, grid_spacing_x];
 grid_buffer_y = region_height/2 * [1, 1];
 grid_buffer_x = region_width/2 * [1, 1];
 
-% grid_buffer_x = image_width/2 * [1, 1];
-
 % Grid the image
 [grid_x, grid_y] = gridImage([image_height, image_width],...
     grid_spacing, grid_buffer_y, grid_buffer_x);
@@ -94,7 +91,22 @@ ny = length(unique(grid_y(:)));
     image_list_01, image_list_02, grid_y, grid_x, region_size, ...
     window_fraction, rpc_diameter);
 
+gx_mat = reshape(grid_x, [ny, nx]);
+gy_mat = reshape(grid_y, [ny, nx]);
 
+tx_apc_mat = reshape(tx_apc, [ny, nx, num_pairs]);
+ty_apc_mat = reshape(ty_apc, [ny, nx, num_pairs]);
+
+tx_rpc_mat = reshape(tx_rpc, [ny, nx, num_pairs]);
+ty_rpc_mat = reshape(ty_rpc, [ny, nx, num_pairs]);
+
+tx_scc_mat = reshape(tx_scc, [ny, nx, num_pairs]);
+ty_scc_mat = reshape(ty_scc, [ny, nx, num_pairs]);
+
+apc_std_x_mat = reshape(apc_std_x, [ny, nx, num_pairs]);
+apc_std_y_mat = reshape(apc_std_y, [ny, nx, num_pairs]);
+
+quiver(gx_mat, gy_mat, tx_apc_mat(:, :, p), ty_apc_mat(:, :, p));
 
 
 

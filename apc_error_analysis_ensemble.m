@@ -88,10 +88,6 @@ for p = 1 : num_images
     % Loop over all the interrogation regions
     for k = 1 : num_regions
         
-        % Inform the user
-        fprintf(1, 'Image %d of %d, region %d of %d\n', ...
-            p, num_images, k, num_regions);
-        
         % Extract the subregions.
         region_01 = extractSubRegions(image_01,...
             [region_height, region_width], gx(k), gy(k));
@@ -126,9 +122,10 @@ for p = 1 : num_images
     % and for some reason running the 
     % first "region" loop in parallel
     % is slower than running it serially.
-    for k = 1 : num_regions
+    parfor k = 1 : num_regions
         
-        fprintf(1, 'APC filter fit %d of %d\n', k, num_regions);
+        % Inform the user
+        fprintf(1, 'On image %d, APC fit %d of %d\n', p, k, num_regions);
         
         % Extract the data we need
         %
@@ -145,10 +142,7 @@ for p = 1 : num_images
         % which should represent the SNR versus wavenumber.
         [~, sy_apc, sx_apc] =...
             fit_gaussian_2D(abs(cc_spectral));
-
-%         sy_apc = 9;
-%         sx_apc = 9;
-        
+       
         % APC filter
         apc_filt = exp(-x2 ./ (2 * sx_apc) - y2 ./ (2 * sy_apc));
         
@@ -178,9 +172,9 @@ for p = 1 : num_images
         [tx_scc(k, p), ty_scc(k, p)] = subpixel(...
             scc_spatial, region_width, region_height, subpix_weights,...
             1, 0, dp_static * [1, 1]);
-    
+        
     end % End (parfor k = 1 : num_regions);
-    
+
 end % End (for p = 1 : num_images)
 
 % End timer
