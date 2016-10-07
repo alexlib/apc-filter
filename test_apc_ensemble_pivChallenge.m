@@ -7,21 +7,9 @@
 % skip_image = 1;
 % c_step = 1;
 
-addpaths('..');
+addpaths('~/Desktop');
 
-diffusion_std = 3;
-
-image_dir = sprintf('/Users/matthewgiarra/Desktop/piv_test_images/poiseuille_diffusion_%0.2f/raw', diffusion_std);
-image_base_name = sprintf('poiseuille_diffusion_%0.2f_', diffusion_std);
-num_digits = 6;
-image_ext = '.tiff';
-start_image = 1;
-end_image = 100;
-skip_image = 2;
-c_step = 1;
-
-
-% image_dir = '/Users/matthewgiarra/Desktop/Ball';
+% image_dir = '/Users/matthewgiarra/Desktop/piv_test_images/poiseuille_diffusion_3.00/raw';
 % image_base_name = 'poiseuille_diffusion_3.00_';
 % num_digits = 6;
 % image_ext = '.tiff';
@@ -29,27 +17,39 @@ c_step = 1;
 % end_image = 100;
 % skip_image = 2;
 % c_step = 1;
+
+image_dir = '/Users/matthewgiarra/Desktop/Ball';
+image_base_name = 'B';
+num_digits = 3;
+image_ext = '.bmp';
+start_image = 1;
+end_image = 50;
+skip_image = 1;
+c_step = 1;
+trailer_a = 'a';
+trailer_b = 'b';
+
 % Region sizes
-region_height = 128;
-region_width  = 128;
+region_height = 64;
+region_width  = 64;
 
 % Window fraction
-window_fraction = 0.5;
+window_fraction = 0.4;
 
 % Grid spacing
-grid_spacing_y = 64;
-grid_spacing_x = 64;
+grid_spacing_y = 8;
+grid_spacing_x = 8;
 
 % Shuffle
-shuffle_range = [0, 0];
-shuffle_step = [0, 0];
+shuffle_range = 0;
+shuffle_step = 0;
 
 % Region size vector
 region_size = [region_height, region_width];
 
 % LIst of image numbers
 image_nums_01 = start_image : skip_image : end_image;
-image_nums_02 = image_nums_01 + c_step;
+image_nums_02 = image_nums_01;
 
 % Number of images
 num_pairs = length(image_nums_01);
@@ -63,8 +63,8 @@ dig_str = ['%0' num2str(num_digits) 'd'];
 
 % Form the image path lists
 for k = 1 : num_pairs
-   image_name_01 = [image_base_name num2str(image_nums_01(k), dig_str) image_ext];
-   image_name_02 = [image_base_name num2str(image_nums_02(k), dig_str) image_ext];
+   image_name_01 = [image_base_name num2str(image_nums_01(k), dig_str) trailer_a image_ext];
+   image_name_02 = [image_base_name num2str(image_nums_02(k), dig_str) trailer_b image_ext];
     
    image_list_01{k} = fullfile(image_dir, image_name_01);
    image_list_02{k} = fullfile(image_dir, image_name_02);
@@ -76,10 +76,8 @@ end
 
 % Grid the images
 grid_spacing = [grid_spacing_y, grid_spacing_x];
+grid_buffer_x = region_width/2  * [1, 1];
 grid_buffer_y = region_height/2 * [1, 1];
-grid_buffer_x = region_width/2 * [1, 1];
-
-% grid_buffer_x = image_width/2 * [1, 1];
 
 % Grid the image
 [grid_x, grid_y] = gridImage([image_height, image_width],...
@@ -87,9 +85,9 @@ grid_buffer_x = region_width/2 * [1, 1];
 
 % Do the APC
 [APC_STD_Y, APC_STD_X, disp_pdf_std_dev_y, disp_pdf_std_dev_x] = ...
-    calculate_apc_filter_ensemble(image_list_01, image_list_02, ...
+    calculate_apc_filter_ensemble_no_shuffle(image_list_01, image_list_02, ...
     grid_y, grid_x, region_size,...
-    window_fraction, shuffle_range, shuffle_step);
+    window_fraction);
 
 apc_std = sqrt(APC_STD_Y.^2 + APC_STD_X.^2);
 
@@ -117,11 +115,10 @@ apc_filt_rep = exp(-(x.^2) / (2 * sx_apc_01^2)) .* exp(-(y.^2) / (2 * sy_apc_01^
  
 rpc_dia = sqrt(rpc_std_y^2 + rpc_std_x^2);
 
-ens_lengths = [1, 2, 3, 4, 5, 10, 15, 20, 50];
 
-% ens_lengths = 6 : 9
+% ens_lengths = [5, 10, 15, 20, 50, 250, 500];
 
-ens_lengths = 11:19;
+ens_lengths = 5;
 
 for e = 1 : length(ens_lengths)
     
@@ -145,14 +142,32 @@ for e = 1 : length(ens_lengths)
     scc_ensemble_spatial_full_image(image_list_01(1:num_ens), image_list_02(1:num_ens), ...
     grid_y, grid_x, region_size, window_fraction);
 
+tx_true = 8;
+ty_true = 0;
 
+tx_err_apc = (tx_true - tx_apc);
+ty_err_apc = (ty_true - ty_apc);
+tx_err_rpc = (tx_true - tx_rpc);
+ty_err_rpc = (ty_true - ty_rpc);
+
+err_mag_apc = sqrt(tx_err_apc.^2 + ty_err_apc.^2);
+err_mag_rpc = sqrt(tx_err_rpc.^2 + ty_err_rpc.^2);
+
+% figure(1);
+% plot(grid_x, err_mag_apc, 'ok', 'markerfacecolor', 'black');
+% hold on
+% plot(grid_x, err_mag_rpc, 'or', 'markerfacecolor', 'red');
+% hold off
+% axis square
+% grid on;
 
 Scale = 10;
 lw = 2;
 fSize = 16;
 
-Skip_x = 4;
-Skip_y = 1;
+Skip_x = 16;
+Skip_y_quiv = 4;
+Skip_y_prof = 4; 
 
 gx_mat = reshape(grid_x, ny, nx);
 gy_mat = reshape(grid_y, ny, nx);
@@ -165,8 +180,10 @@ ty_rpc_mat = reshape(ty_rpc, ny, nx);
 tx_scc_mat = reshape(tx_scc, ny, nx);
 ty_scc_mat = reshape(ty_scc, ny, nx);
 
-x_inds = 1 : Skip_x : nx;
-y_inds = 1 : Skip_y : ny;
+x_inds_quiv = 1 : Skip_x : nx;
+y_inds_quiv = 1 : Skip_y_quiv : ny;
+
+y_inds_prof = 1 : Skip_y_prof : ny;
 
 
 % Average the velocity profiles
@@ -196,19 +213,6 @@ for p = 1 : 2 : 9
 end
 
 
-% High resolution y coordinate
-y_highres = linspace(min(gy), max(gy), 1000);
-
-% Center of the image in the height direction
-yc = image_height / 2;
-    
-% Radial coordinate in the height direction
-r = abs((y_highres - yc) / (image_height/2));
-
-% Velocity profile exact solution.
-u_exact = - 10 * (r.^2 - 1);
-
-
 % Error bar plots
 figure(1);
 c_red = 1 / 255 * [178,34,34];
@@ -222,43 +226,41 @@ linespec_blue = {'-', 'color', c_blue};
 linespec_gray = {'-', 'color', c_gray};
 
 
-fig_pos_fract_y = 1.8;
+vel_max = 14;
+vel_min = 4;
+
+fig_pos_fract_y = 2.5;
 % fig_pos_fract_x = 0.9;
 fig_pos_x_shift = -0.05;
 
-
-
-
-
 subplot(2, 3, 1)
-quiver(gx_mat(y_inds, x_inds),...
-    gy_mat(y_inds, x_inds), ...
-    Scale * tx_scc_mat(y_inds, x_inds), ...
-    Scale * ty_scc_mat(y_inds, x_inds),...
-    0, 'color', c_blue, 'linewidth', lw);
+quiver(gx_mat(y_inds_quiv, x_inds_quiv),...
+    gy_mat(y_inds_quiv, x_inds_quiv), ...
+    Scale * tx_apc_mat(y_inds_quiv, x_inds_quiv), ...
+    Scale * ty_apc_mat(y_inds_quiv, x_inds_quiv),...
+    0, 'color', 'black', 'linewidth', lw);
 axis image
-title(sprintf('$\\textrm{SCC, %d pairs}$', num_ens), ...
+title(sprintf('$\\textrm{APC, %d pairs}$', num_ens), ...
     'interpreter', 'latex', 'FontSize', fSize);
 set(gca, 'FontSize', fSize);
-set(gca, 'ytick', []);
 box on
 ylim([1, image_height]);
 xlim([1, image_width]);
+y_tick_label_current = get(gca, 'ytick');
 set(gca, 'ytick', xt_prof);
 set(gca, 'xtick', xt_quiv);
 set(gca, 'xticklabel', xtl_prof);
 set(gca, 'yticklabel', xtl_prof);
+set(gca, 'ydir', 'reverse');
 xlabel('$x / L$', 'interpreter', 'latex', 'FontSize', fSize);
 ylabel('$y / h$', 'interpreter', 'latex', 'fontsize', fSize);
 grid on
 
-
-
 subplot(2, 3, 2)
-quiver(gx_mat(y_inds, x_inds),...
-    gy_mat(y_inds, x_inds), ...
-    Scale * tx_rpc_mat(y_inds, x_inds), ...
-    Scale * ty_rpc_mat(y_inds, x_inds),...
+quiver(gx_mat(y_inds_quiv, x_inds_quiv),...
+    gy_mat(y_inds_quiv, x_inds_quiv), ...
+    Scale * tx_rpc_mat(y_inds_quiv, x_inds_quiv), ...
+    Scale * ty_rpc_mat(y_inds_quiv, x_inds_quiv),...
     0, 'color', c_red, 'linewidth', lw);
 axis image
 title(sprintf('$\\textrm{RPC, %d pairs}$', num_ens), ...
@@ -272,6 +274,7 @@ set(gca, 'ytick', xt_prof);
 set(gca, 'xtick', xt_quiv);
 set(gca, 'xticklabel', xtl_prof);
 set(gca, 'yticklabel', '');
+set(gca, 'ydir', 'reverse');
 xlabel('$x / L$', 'interpreter', 'latex', 'FontSize', fSize);
 p = get(gca, 'position');
 p(1) =  p(1) + fig_pos_x_shift;
@@ -279,70 +282,64 @@ set(gca, 'position', p);
 grid on
 
 subplot(2, 3, 3)
-quiver(gx_mat(y_inds, x_inds),...
-    gy_mat(y_inds, x_inds), ...
-    Scale * tx_apc_mat(y_inds, x_inds), ...
-    Scale * ty_apc_mat(y_inds, x_inds),...
-    0, 'color', 'black', 'linewidth', lw);
+quiver(gx_mat(y_inds_quiv, x_inds_quiv),...
+    gy_mat(y_inds_quiv, x_inds_quiv), ...
+    Scale * tx_scc_mat(y_inds_quiv, x_inds_quiv), ...
+    Scale * ty_scc_mat(y_inds_quiv, x_inds_quiv),...
+    0, 'color', c_blue, 'linewidth', lw);
 axis image
-title(sprintf('$\\textrm{APC, %d pairs}$', num_ens), ...
+title(sprintf('$\\textrm{SCC, %d pairs}$', num_ens), ...
     'interpreter', 'latex', 'FontSize', fSize);
 set(gca, 'FontSize', fSize);
+set(gca, 'ytick', []);
 box on
 ylim([1, image_height]);
 xlim([1, image_width]);
-set(gca, 'yticklabel', '');
 set(gca, 'ytick', xt_prof);
 set(gca, 'xtick', xt_quiv);
 set(gca, 'xticklabel', xtl_prof);
+set(gca, 'yticklabel', '');
+set(gca, 'ydir', 'reverse');
 xlabel('$x / L$', 'interpreter', 'latex', 'FontSize', fSize);
 p = get(gca, 'position');
 p(1) =  p(1) + 2 * fig_pos_x_shift;
 set(gca, 'position', p);
 grid on
 
-
 subplot(2, 3, 4);
-% errorbar(gy, tx_mean_scc, tx_std_scc, '-', 'color', c_blue, 'linewidth', 2);
-shadedErrorBar(gy, tx_mean_scc, tx_std_scc, linespec_blue);
-hold on
-plot(y_highres, u_exact, '--k');
-hold off
+% errorbar(gy, tx_mean_apc, tx_std_apc, '-k', 'linewidth', 2);
+shadedErrorBar(gy, tx_mean_apc, tx_std_apc, linespec_gray);
 set(gca, 'view', [90, 90]);
 axis square;
 box on;
-ylim([0, 12]);
-set(gca, 'ytick', 0 : 2 : 10);
-set(gca, 'xtick', xt_prof);
+ylim([vel_min, vel_max]);
 xlim([1, image_height]);
+set(gca, 'ytick', 0 : 2 : vel_max);
 ylabel('$\textrm{Axial velocity (pix / frame)}$',...
     'interpreter', 'latex', 'FontSize', fSize);
 xlabel('$y / h$', 'interpreter', 'latex', 'FontSize', fSize);
+set(gca, 'xtick', xt_prof);
 set(gca, 'xticklabel', xtl_prof);
-set(gca, 'xdir', 'reverse')
+% set(gca, 'xdir', 'reverse')
 set(gca, 'FontSize', fSize);
 p = get(gca, 'position');
 p(2) = fig_pos_fract_y * p(2);
 set(gca, 'position', p);
 grid on
 
-
 subplot(2, 3, 5);
 % errorbar(gy, tx_mean_rpc, tx_std_rpc, '-', 'color', c_red, 'linewidth', 2);
 shadedErrorBar(gy, tx_mean_rpc, tx_std_rpc, linespec_red);
-hold on
-plot(y_highres, u_exact, '--k');
-hold off
 set(gca, 'view', [90, 90]);
 axis square;
 box on;
-ylim([0, 12]);
-set(gca, 'ytick', 0 : 2 : 10);
+ylim([vel_min, vel_max]);
+set(gca, 'ytick', 0 : 2 : vel_max);
 set(gca, 'xtick', xt_prof);
 xlim([1, image_height]);
 ylabel('$\textrm{Axial velocity (pix / frame)}$',...
     'interpreter', 'latex', 'FontSize', fSize);
-set(gca, 'xdir', 'reverse')
+% set(gca, 'xdir', 'reverse')
 set(gca, 'xticklabel', {''});
 set(gca, 'FontSize', fSize);
 p = get(gca, 'position');
@@ -352,28 +349,27 @@ set(gca, 'position', p);
 grid on
 
 subplot(2, 3, 6);
-% errorbar(gy, tx_mean_apc, tx_std_apc, '-k', 'linewidth', 2);
-shadedErrorBar(gy, tx_mean_apc, tx_std_apc, linespec_gray);
-hold on
-plot(y_highres, u_exact, '--k');
-hold off
+% errorbar(gy, tx_mean_scc, tx_std_scc, '-', 'color', c_gray, 'linewidth', 2);
+shadedErrorBar(gy, tx_mean_scc, tx_std_scc, linespec_blue);
 set(gca, 'view', [90, 90]);
 axis square;
 box on;
-ylim([0, 12]);
+ylim([vel_min, vel_max]);
+set(gca, 'ytick', 0 : 2 : vel_max);
+set(gca, 'xtick', xt_prof);
 xlim([1, image_height]);
-set(gca, 'ytick', 0 : 2 : 10);
 ylabel('$\textrm{Axial velocity (pix / frame)}$',...
     'interpreter', 'latex', 'FontSize', fSize);
-set(gca, 'xtick', xt_prof);
-set(gca, 'xticklabel', '');
-set(gca, 'xdir', 'reverse')
+% set(gca, 'xdir', 'reverse')
+set(gca, 'xticklabel', {''});
 set(gca, 'FontSize', fSize);
 p = get(gca, 'position');
-p(2) = fig_pos_fract_y * p(2);
 p(1) =  p(1) + 2 * fig_pos_x_shift;
+p(2) = fig_pos_fract_y * p(2);
 set(gca, 'position', p);
 grid on
+
+
 
 set(gcf, 'color', 'white');
 
@@ -381,7 +377,7 @@ set(gcf, 'position', [-2115         524        1557         955]);
 
 
 tightfig;
-fig_save_name = sprintf('~/Desktop/piv_results/figs/fig_diff_%0.2f_ens_%d.png', diffusion_std, num_ens);
+fig_save_name = sprintf('~/Desktop/figs/fig_ball_ens_%d.png', num_ens);
 
 
 export_fig(fig_save_name, '-r300');
@@ -391,7 +387,50 @@ export_fig(fig_save_name, '-r300');
     
 end
 
+apc_std_x_mat = reshape(APC_STD_X ./ rpc_std_x, ny, nx);
+apc_std_y_mat = reshape(APC_STD_Y ./ rpc_std_y, ny, nx);
 
+figure; 
+subplot(2, 1, 1);
+imagesc(gx_mat(:), gy_mat(:), apc_std_x_mat);
+hold on
+quiver(gx_mat(y_inds_quiv, x_inds_quiv),...
+    gy_mat(y_inds_quiv, x_inds_quiv), ...
+    Scale * tx_apc_mat(y_inds_quiv, x_inds_quiv), ...
+    Scale * ty_apc_mat(y_inds_quiv, x_inds_quiv),...
+    0, 'color', 'black', 'linewidth', lw);
+h = colorbar;
+ylabel(h, '$\sigma_x / \sigma_{\textrm{RPC}}$', 'interpreter', 'latex', 'fontsize', 20);
+
+hold off
+axis image;
+title({'PIV Challenge 2003 B, Filter from ensemble of 50 pairs', 'Vectors from ensemble of 5 pairs', 'APC diameter vs RPC diameter, x direction'}, 'FontSize', fSize);
+set(gca, 'fontsize', fSize);
+caxis([0.4, 0.9]);
+xlim([1, 1.02 * image_width]);
+ylim([1, image_height]);
+
+
+
+subplot(2, 1, 2);
+imagesc(gx_mat(:), gy_mat(:), apc_std_y_mat);
+hold on
+quiver(gx_mat(y_inds_quiv, x_inds_quiv),...
+    gy_mat(y_inds_quiv, x_inds_quiv), ...
+    Scale * tx_apc_mat(y_inds_quiv, x_inds_quiv), ...
+    Scale * ty_apc_mat(y_inds_quiv, x_inds_quiv),...
+    0, 'color', 'black', 'linewidth', lw);
+h = colorbar;
+ylabel(h, '$\sigma_y / \sigma_{\textrm{RPC}}$', 'interpreter', 'latex', 'fontsize', 20);
+
+hold off
+axis image;
+title('APC diameter vs RPC diameter, y direction', 'FontSize', fSize);
+caxis([0.4, 0.9]);
+set(gcf, 'color', 'white');
+set(gca, 'fontsize', fSize);
+xlim([1, 1.02 * image_width]);
+ylim([1, image_height]);
 
 
 

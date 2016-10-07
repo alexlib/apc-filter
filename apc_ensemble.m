@@ -161,11 +161,12 @@ for k = 1 : num_regions
     apc_filt = exp(-(x.^2)./ (2 * apc_std_x(k)^2)) .* ...
         exp(-(y.^2)./ (2 * apc_std_y(k)^2));
     
-    dp_x = 4 * abs(apc_std_x(k));
-    dp_y = 4 * abs(apc_std_y(k));
+    % Particle diameter
+    dp_x = 4 * abs(pi^2 / (sqrt(2) * apc_std_x(k)));
+    dp_y = 4 * abs(pi^2 / (sqrt(2) * apc_std_y(k)));
     
     % Filter the spectral correlation
-    spectral_corr_filt = spectral_correlation_array(:, :, k) .* apc_filt;
+    spectral_corr_filt = phaseOnlyFilter(spectral_correlation_array(:, :, k)) .* apc_filt;
     
     % Inverse FT
     spatial_corr_filt = fftshift(abs(ifft2(fftshift(spectral_corr_filt))));

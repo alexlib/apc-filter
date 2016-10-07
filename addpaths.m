@@ -13,4 +13,8 @@ addpath(fullfile(ROOT, 'spectral-phase-correlation', 'filtering'));
 addpath(fullfile(ROOT, 'spectral-phase-correlation', 'correlation_algorithms'))
 addpath(fullfile(ROOT, 'piv-image-generation'));
 addpath(fullfile(ROOT, 'piv-image-generation', 'jobfiles'));
+addpath(fullfile(ROOT, 'tightfig'));
+addpath(fullfile(ROOT, 'shadedErrorBar'));
+addpath(fullfile(ROOT, 'export_fig'));
+
 end

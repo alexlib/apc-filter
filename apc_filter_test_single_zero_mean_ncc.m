@@ -15,18 +15,16 @@ fSize_title = 12;
 num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 20;
-num_regions_neq = 1000;
+num_regions_eq = 1;
+num_regions_neq = 1;
 
 cc_abs_mad = zeros(num_regions_eq, 1);
-
-
 
 % 
 
 % Image dimensions
-region_height = 64;
-region_width  = 64;
+region_height = 128;
+region_width  = 128;
 % % Grid step
 gx_range = 0;
 gx_step = 0;
@@ -49,7 +47,7 @@ gy_range = gx_range;
 gy_step = gx_step;
 
 % Random displacements
-s_rand = 0;
+s_rand = 3;
 
 %
 %
@@ -65,12 +63,14 @@ y_dist = rectpuls(y, sy_uniform_spread);
 
 dx_dist = y_dist' * x_dist;
 
+sx_mean = 16;
+sy_mean = 0;
 
-sx_lb =  -sx_uniform_spread/2;
-sx_ub =  -sx_uniform_spread/2;
+sx_lb = sx_uniform_spread/2;
+sx_ub = sx_uniform_spread/2;
 
-sy_lb = sx_lb;
-sy_ub = sx_ub;
+% sy_lb = sx_lb;
+% sy_ub = sx_ub;
 
 sy_lb = 0;
 sy_ub = 0;
@@ -82,8 +82,7 @@ sy_bulk_dist = (sy_ub - sy_lb) * rand(num_trials * num_regions_eq, 1) + sy_lb;
 % sx_bulk_dist = linspace(1, 10, num_trials);
 
 % Window size
-window_fraction = 1 * [1, 1];
-
+window_fraction = 0.5 * [1, 1];
 
 
 % Random displacements
@@ -96,14 +95,14 @@ sy_rand = s_rand;
 d_std = 0;
 
 % Mean particle diameter
-d_mean = 1 * sqrt(8);
+d_mean = 3;
 % d_mean = 1;
 % Particle concentration in particles per pixel
-particle_concentration = 6E-2;
+particle_concentration = 2E-2;
 
 % Image noise
-noise_mean_fract = 1E-1;
-noise_std_fract  = 5E-4;
+noise_mean_fract = 5E-2;
+noise_std_fract  = 1.5E-1;
 
 % Particle positions buffer
 x_buffer = -16;
@@ -291,19 +290,21 @@ for r = 1 : num_trials
     
     cc_test = zeros(region_height, region_width);
 
+
+    
 % Do the corresponding correlation
 for k = 1 : num_regions_eq
     
-%     dx = sx_bulk + sx_rand * randn(num_particles, 1);
-%     dy = sy_bulk + sy_rand * randn(num_particles, 1);
+    dx = sx_mean + sx_rand * randn(num_particles, 1);
+    dy = sy_mean + sy_rand * randn(num_particles, 1);
 
      % Particle positions (image 1)
     x_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
     y_01 = (y_max - y_min) * rand(num_particles, 1) + y_min;
     
     % Shearing
-    dx = sx_bulk + sx_uniform_spread * y_01 / region_height;
-    dy = sy_bulk + zeros(size(dx));
+%     dx = sx_bulk + sx_uniform_spread * (y_01 - yc) / (region_height/2);
+%     dy = sy_bulk + zeros(size(dx));
     
         
     % Uniform distribution
