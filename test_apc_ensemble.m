@@ -20,6 +20,7 @@ end_image = 100;
 skip_image = 2;
 c_step = 1;
 
+rpc_diameter = 6.0;
 
 % image_dir = '/Users/matthewgiarra/Desktop/Ball';
 % image_base_name = 'poiseuille_diffusion_3.00_';
@@ -109,7 +110,7 @@ S = reshape(apc_std, [ny, nx]);
 
 
 % Calculate the RPC filter size
-rpc_filter = spectralEnergyFilter(region_height, region_width, 3);
+rpc_filter = spectralEnergyFilter(region_height, region_width, rpc_diameter);
 apc_filt_rep = exp(-(x.^2) / (2 * sx_apc_01^2)) .* exp(-(y.^2) / (2 * sy_apc_01^2));
 
 % Because what isn't these days
@@ -117,11 +118,8 @@ apc_filt_rep = exp(-(x.^2) / (2 * sx_apc_01^2)) .* exp(-(y.^2) / (2 * sy_apc_01^
  
 rpc_dia = sqrt(rpc_std_y^2 + rpc_std_x^2);
 
-ens_lengths = [1, 2, 3, 4, 5, 10, 15, 20, 50];
-
-% ens_lengths = 6 : 9
-
-ens_lengths = 11:19;
+ens_lengths = [1, 5, 10, 15, 20, 50];
+ens_lengths = 2 : 4;
 
 for e = 1 : length(ens_lengths)
     
@@ -207,7 +205,6 @@ r = abs((y_highres - yc) / (image_height/2));
 
 % Velocity profile exact solution.
 u_exact = - 10 * (r.^2 - 1);
-
 
 % Error bar plots
 figure(1);
@@ -381,7 +378,7 @@ set(gcf, 'position', [-2115         524        1557         955]);
 
 
 tightfig;
-fig_save_name = sprintf('~/Desktop/piv_results/figs/fig_diff_%0.2f_ens_%d.png', diffusion_std, num_ens);
+fig_save_name = sprintf('~/Desktop/piv_results/figs_dp_6/fig_diff_%0.2f_ens_%d.png', diffusion_std, num_ens);
 
 
 export_fig(fig_save_name, '-r300');
