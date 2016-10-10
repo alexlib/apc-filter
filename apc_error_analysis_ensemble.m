@@ -122,8 +122,6 @@ for p = 1 : num_images
     % and for some reason running the xa
     % first "region" loop in parallel
     % is slower than running it serially.
-
-    if p == num_images
         parfor k = 1 : num_regions
 
             % Inform the user
@@ -176,13 +174,8 @@ for p = 1 : num_images
                 1, 0, dp_static * [1, 1]);
 
         end % End (parfor k = 1 : num_regions);
-    end
 
 end % End (for p = 1 : num_images)
-
-
-save('~/Desktop/debug/new_code_vars.mat', 'spectral_correlation_array', 'scc_ensemble', 'rpc_ensemble', 'apc_std_y', 'apc_std_x', 'nx', 'ny');
-    
 
 % End timer
 tf = toc(t);
