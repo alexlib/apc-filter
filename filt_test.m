@@ -12,8 +12,6 @@ rpc_filter = spectralEnergyFilter(region_width, region_height, 3);
 cc_rpc_spect = phaseOnlyFilter(cc_full_sum) .* rpc_filter;
 g3 = fftshift(abs(ifft2(fftshift(cc_rpc_spect))));
 
-
-
 figure(2); 
 subplot(1, 3, 1); 
 surf(g); 

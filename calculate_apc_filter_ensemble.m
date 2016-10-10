@@ -202,77 +202,39 @@ for p = 1 : num_images
 % Loop over all the interrogation regions.
     for k = 1 : num_regions
 
-        % Allocate running correlation sum.
-        % This is re-zeroed for each region
-        % because it is the magnitude of 
-        % this complex array that is taken
-        % to be the APC filter, and a 
-        % different filter is calculated for each region!
-        complex_correlation_sum = zeros(region_height, region_width) + ...
-            1i * zeros(region_height, region_width);
+        % Extract the subregions.
+        region_01 = extractSubRegions(image_01,...
+            [region_height, region_width], gx(k), gy(k));
+        region_02 = extractSubRegions(image_02,...
+            [region_height, region_width], gx(k), gy(k));
         
-        % Re zero the auto correlation sum 
-        auto_corr_sum = zeros(region_height, region_width);
-
-        % Shake-the-box
-        for g = 1 : num_shuffles
-
-            % Shift the grid (this is the shuffle)
-            % The Kobayashi Shake of PIV
-            % The 
-            shifted_grid_x = gx(k) + shuffle_X(g);
-            shifted_grid_y = gy(k) + shuffle_Y(g);
-
-            % Extract the subregions.
-            region_01 = extractSubRegions(image_01,...
-                [region_height, region_width], shifted_grid_x, shifted_grid_y);
-            region_02 = extractSubRegions(image_02,...
-                [region_height, region_width], shifted_grid_x, shifted_grid_y);
-
-            % Transforms
-            F1 = fftshift(fft2(g_win .* (region_01 - mean(region_01(:)))));
-            F2 = fftshift(fft2(g_win .* (region_02 - mean(region_02(:)))));
-
-            % Cross correlation
-            complex_cross_correlation_current = F1 .* conj(F2);
-            
-            % Auto correlations
-            auto_corr_01 = F1 .* conj(F1);
-            auto_corr_02 = F2 .* conj(F2);
-            
-            % Mean auto correlatoin
-            auto_corr_mean =  (auto_corr_01 + auto_corr_02) / 2;
-            
-            % Add the mean auto correlation 
-            % to the running sum of auto correlations
-            % The auto correlation captures the shape
-            % of the correlating pattern (i.e. 
-            % the shape of the particle)
-            % and dividing the cross correlation
-            % by this array gives the FT
-            % of the PDF of displacements of the 
-            % correlating tracer particles.
-            auto_corr_sum = auto_corr_sum + auto_corr_mean;
-
-            % Ensemble correlation
-            complex_correlation_sum = ...
-                complex_correlation_sum + complex_cross_correlation_current;
-            
-        end % End (for g = 1 : num_shuffles)
-
-        % Add the correlation to the big array
-        % containing all of the ensemble correlation planes.
-        spectral_correlation_array(:, :, k) = ...
-            spectral_correlation_array(:, :, k) + complex_correlation_sum;
+        % Transforms
+        F1 = fftshift(fft2(g_win .* (region_01 - mean(region_01(:)))));
+        F2 = fftshift(fft2(g_win .* (region_02 - mean(region_02(:)))));
         
-        % Add the auto correlation to the big array
-        % containing all of the autocorrelations
+%       Auto correlations
+        auto_corr_01 = F1 .* conj(F1);
+        auto_corr_02 = F2 .* conj(F2);
+        
+        auto_corr_mean =  (auto_corr_01 + auto_corr_02) / 2;
+        
         auto_correlation_array(:, :, k) = ...
-            auto_correlation_array(:, :, k) + auto_corr_sum;
+            auto_correlation_array(:, :, k) + auto_corr_mean;
         
+        % Cross correlation
+        complex_cross_correlation_current = F1 .* conj(F2);
+                
+        spectral_correlation_array(:, :, k) = ...
+            spectral_correlation_array(:, :, k) + complex_cross_correlation_current;
+
     end % End (for k = 1 : num_regions)
 
 end % End (for p = 1 : num_images)
+
+
+ 
+
+
 
 % Do the Gaussian fitting
 parfor k = 1 : num_regions
@@ -307,6 +269,12 @@ parfor k = 1 : num_regions
 
    
 end
+
+apc_std_y = APC_STD_Y;
+apc_std_x = APC_STD_X;
+
+save('~/Desktop/debug/old_code_vars.mat', 'spectral_correlation_array', 'apc_std_y', 'apc_std_x');
+   
 
 
 end

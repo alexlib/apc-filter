@@ -37,7 +37,7 @@ rpc_filter = spectralEnergyFilter(...
     region_height, region_width, rpc_diameter);
 
 % Allocate the running ensemble correlation
-spectral_cc_sum = ...
+spectral_correlation_array = ...
     zeros(region_height, region_width, num_regions) + ...
     1i * zeros(region_height, region_width, num_regions);
 
@@ -94,17 +94,17 @@ for p = 1 : num_images
         region_02 = extractSubRegions(image_02,...
             [region_height, region_width], gx(k), gy(k));
         
-        % Fourier transforms
+        % Transforms
         F1 = fftshift(fft2(g_win .* (region_01 - mean(region_01(:)))));
         F2 = fftshift(fft2(g_win .* (region_02 - mean(region_02(:)))));
         
         % Cross correlation
         spectral_cc_current = F1 .* conj(F2);
         
-        % Add the cross correlation to the sum
-        spectral_cc_sum(:, :, k) = ...
-            spectral_cc_sum(:, :, k) + spectral_cc_current;
-      
+        % Spectral correlation full
+        spectral_correlation_array(:, :, k) = ...
+            spectral_correlation_array(:, :, k) + spectral_cc_current;
+        
         % Inverse FT of the cross correlation. This is the SCC plane.
         scc_ensemble(:, :, k) = scc_ensemble(:, :, k) + ...
             fftshift(abs(ifft2(fftshift(spectral_cc_current))));
@@ -113,69 +113,76 @@ for p = 1 : num_images
         rpc_ensemble(:, :, k) = rpc_ensemble(:, :, k) + ...
             fftshift(abs(ifft2(fftshift(...
             phaseOnlyFilter(spectral_cc_current) .* rpc_filter))));
-          
+         
     end % End (for k = 1 : num_regions)
-    
+
     % Do the peak fitting and APC filtering
     % This is separated from the first loop
     % so that it can be run in parallel,
-    % and for some reason running the 
+    % and for some reason running the xa
     % first "region" loop in parallel
     % is slower than running it serially.
-    parfor k = 1 : num_regions
-        
-        % Inform the user
-        fprintf(1, 'On image %d, APC fit %d of %d\n', p, k, num_regions);
-        
-        % Extract the data we need
-        %
-        % Spatial planes
-        scc_spatial = scc_ensemble(:, :, k);
-        rpc_spatial = rpc_ensemble(:, :, k);
-        
-        % Spectral Planes
-        cc_spectral = spectral_cc_sum(:, :, k);
-        
-        % First calculate the APC filters
-        % Fit a Gaussian function to the magnitude
-        % of the complex correlation, 
-        % which should represent the SNR versus wavenumber.
-        [~, sy_apc, sx_apc] =...
-            fit_gaussian_2D(abs(cc_spectral));
-       
-        % APC filter
-        apc_filt = exp(-x2 ./ (2 * sx_apc) - y2 ./ (2 * sy_apc));
-        
-        % Equivalent particle diameters
-        dp_equiv_x = 4 * abs(pi^2 / (sqrt(2) * sx_apc));
-        dp_equiv_y = 4 * abs(pi^2 / (sqrt(2) * sy_apc));
-        
-        % Save APC standard deviations to output variables
-        apc_std_x(k, p) = sx_apc;
-        apc_std_y(k, p) = sy_apc;
-        
-        % Filter the spectral correlation and invert it
-        apc_spatial = fftshift(abs(ifft2(fftshift(...
-            phaseOnlyFilter(cc_spectral) .* apc_filt))));
 
-        % APC Subpixel fit
-        [tx_apc(k, p), ty_apc(k, p)] = subpixel(...
-            apc_spatial, region_width, region_height, subpix_weights,...
-            1, 0, [dp_equiv_x, dp_equiv_y]);
-        
-        % RPC Subpixel fit
-        [tx_rpc(k, p), ty_rpc(k, p)] = subpixel(...
-            rpc_spatial, region_width, region_height, subpix_weights,...
-            1, 0, dp_static * [1, 1]);
-        
-        % SCC Subpixel fit
-        [tx_scc(k, p), ty_scc(k, p)] = subpixel(...
-            scc_spatial, region_width, region_height, subpix_weights,...
-            1, 0, dp_static * [1, 1]);
-        
-    end % End (parfor k = 1 : num_regions);
+    if p == num_images
+        parfor k = 1 : num_regions
+
+            % Inform the user
+            fprintf(1, 'On image %d, APC fit %d of %d\n', p, k, num_regions);
+
+            % Extract the data we need
+            %
+            % Spatial planes
+            scc_spatial = scc_ensemble(:, :, k);
+            rpc_spatial = rpc_ensemble(:, :, k);
+
+            % Spectral Planes
+            cc_spectral = spectral_correlation_array(:, :, k);
+
+            % First calculate the APC filters
+            % Fit a Gaussian function to the magnitude
+            % of the complex correlation, 
+            % which should represent the SNR versus wavenumber.
+            [~, sy_apc, sx_apc] =...
+                fit_gaussian_2D(abs(cc_spectral));
+
+            % APC filter
+            apc_filt = exp(-x2 ./ (2 * sx_apc^2) - y2 ./ (2 * sy_apc^2));
+
+            % Equivalent particle diameters
+            dp_equiv_x = 4 * abs(pi^2 / (sqrt(2) * sx_apc));
+            dp_equiv_y = 4 * abs(pi^2 / (sqrt(2) * sy_apc));
+            
+            % Save APC standard deviations to output variables
+            apc_std_x(k, p) = sx_apc;
+            apc_std_y(k, p) = sy_apc;
+
+            % Filter the spectral correlation and invert it
+            apc_spatial = fftshift(abs(ifft2(fftshift(...
+                phaseOnlyFilter(cc_spectral) .* apc_filt))));
+
+            % APC Subpixel fit
+            [tx_apc(k, p), ty_apc(k, p)] = subpixel(...
+                apc_spatial, region_width, region_height, subpix_weights,...
+                1, 0, [dp_equiv_x, dp_equiv_y]);
+            
+            % RPC Subpixel fit
+            [tx_rpc(k, p), ty_rpc(k, p)] = subpixel(...
+                rpc_spatial, region_width, region_height, subpix_weights,...
+                1, 0, dp_static * [1, 1]);
+
+            % SCC Subpixel fit
+            [tx_scc(k, p), ty_scc(k, p)] = subpixel(...
+                scc_spatial, region_width, region_height, subpix_weights,...
+                1, 0, dp_static * [1, 1]);
+
+        end % End (parfor k = 1 : num_regions);
+    end
 
 end % End (for p = 1 : num_images)
+
+
+save('~/Desktop/debug/new_code_vars.mat', 'spectral_correlation_array', 'scc_ensemble', 'rpc_ensemble', 'apc_std_y', 'apc_std_x', 'nx', 'ny');
+    
 
 % End timer
 tf = toc(t);
