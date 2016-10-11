@@ -78,11 +78,21 @@ parfor k = 1 : num_regions
 end % End (for k = 1 : num_regions)
 
 % Save all the data
-t2 = toc(t1);
+t2 = double(toc(t1));
 regions_per_sec = num_regions / t2;
-fprintf('Correlated %d regions in %d sec\n.', num_regions, t2);
-fprintf(1, '%0.2f regions per second.\n', regions_per_sec);
+fprintf('Correlated %0d regions in %0.2f sec.\n', num_regions, t2);
+fprintf(1, '%0.0f regions per second.\n\n', regions_per_sec);
+
+t1 = tic;
 save(save_path, 'gx', 'gy', 'spectral_correlation_array', 'spatial_correlation_array');
+t2 = double(toc(t1));
+
+file_info = dir(save_path);
+file_size_MB = file_info.bytes / 10^6;
+MB_per_sec = file_size_MB / t2;
+fprintf(1, 'Saved results to: %s\n', save_path);
+fprintf(1, 'Save time: %0.2f sec\n', t2);
+fprintf(1, '%0.2f MB per sec\n\n\n', MB_per_sec);
 
 
 end
