@@ -5,12 +5,11 @@ function JOB_LIST = apc_jobfile()
 region_width  = 128;
 region_height = 128 ;
 
-img_repo = '~/Documents/piv_test_images';
+% img_repo = '~/Desktop/piv_test_images';
+img_repo = '/home/shannon/b/aether/piv_test_images';
 
 % Diffusion standard deviation
-diffusion_std = 3;
-
-% img_repo = '/Users/matthewgiarra/Desktop/piv_test_images';
+diffusion_std = 1;
 
 case_name = sprintf('poiseuille_diffusion_%0.2f', diffusion_std);
 
@@ -48,7 +47,7 @@ JobFile.Parameters.Processing.Grid.Buffer.Y = round(region_height /2) * [1, 1];
 JOB_LIST(1) = JobFile;
 
 % % New Std Dev
-diffusion_std = 1;
+diffusion_std = 3;
 case_name = sprintf('poiseuille_diffusion_%0.2f', diffusion_std);
 solution_file_name = sprintf('poiseuille_diffusion_%0.2f.mat', diffusion_std);
 JobFile.Images.Directory = fullfile(img_repo, case_name, 'raw');
