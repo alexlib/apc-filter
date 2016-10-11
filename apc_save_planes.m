@@ -24,11 +24,6 @@ spectral_correlation_array = ...
     zeros(region_height, region_width, num_regions) + ...
     1i * zeros(region_height, region_width, num_regions);
 
-% Allocate the spatial correlations
-spatial_correlation_array = ...
-    zeros(region_height, region_width);
-
-
 % Read the image if it's passed as a string
 % i.e. if it's a path
 if ischar(image_01)
@@ -68,12 +63,8 @@ parfor k = 1 : num_regions
     % Spectral cross correlation
     spectral_cc_current = F1 .* conj(F2);
 
-    % Inverse FT of the cross correlation. This is the SCC plane.
-    spatial_correlation_current =  fftshift(abs(ifft2(fftshift(spectral_cc_current))));
-
     % Save data to the output arrays
     spectral_correlation_array(:, :, k) = spectral_cc_current;
-    spatial_correlation_array(:, :, k) = spatial_correlation_current;
 
 end % End (for k = 1 : num_regions)
 
@@ -83,13 +74,14 @@ regions_per_sec = num_regions / t2;
 fprintf('Correlated %0d regions in %0.2f sec.\n', num_regions, t2);
 fprintf(1, '%0.0f regions per second.\n\n', regions_per_sec);
 
-
+% % % % % % % SAVING % % % % % % 
 t1 = tic;
 save(save_path, ...
     'gx', 'gy', ...
     'spectral_correlation_array', ...
-    'spatial_correlation_array', ...
     '-v6');
+% % % % % % % % % % % % % % % % 
+
 t2 = double(toc(t1));
 
 file_info = dir(save_path);
