@@ -7,7 +7,7 @@ region_height = 128 ;
 
 % Decide where the image repo is
 if ismac
-    img_repo = '/Volumes/aether_b/piv_test_images';
+    img_repo = '~/Desktop/piv_test_images';
 elseif islinux
     img_repo = '/home/shannon/b/aether/piv_test_images';
 end

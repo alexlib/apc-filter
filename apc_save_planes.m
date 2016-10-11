@@ -72,7 +72,7 @@ end % End (for k = 1 : num_regions)
 t2 = double(toc(t1));
 regions_per_sec = num_regions / t2;
 fprintf('Correlated %0d regions in %0.2f sec.\n', num_regions, t2);
-fprintf(1, '%0.0f regions per second.\n\n', regions_per_sec);
+fprintf(1, '%0.0f regions per second.\n', regions_per_sec);
 
 % % % % % % % SAVING % % % % % % 
 t1 = tic;
@@ -89,7 +89,7 @@ file_size_MB = file_info.bytes / 10^6;
 MB_per_sec = file_size_MB / t2;
 fprintf(1, 'Saved results to: %s\n', save_path);
 fprintf(1, 'Save time: %0.2f sec\n', t2);
-fprintf(1, '%0.2f MB per sec\n\n\n', MB_per_sec);
+fprintf(1, '%0.2f MB per sec\n', MB_per_sec);
 
 
 end

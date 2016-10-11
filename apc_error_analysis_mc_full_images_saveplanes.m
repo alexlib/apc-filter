@@ -111,24 +111,28 @@ for n = 1 : num_jobs
     % Grid the image
     [grid_x, grid_y] = gridImage([image_height, image_width],...
         grid_spacing, grid_buffer_y, grid_buffer_x);
-    
-    t1 = tic;
+  
     % Do the correlations and save the planes.
-    for k = 1 : num_pairs
-        
-        fprintf(1, 'On pair %d of %d...\n', k, num_pairs);
-        
+    for k = 1 : num_pairs      
+        t1 = tic;
+
+        fprintf(1, '\nOn pair %d of %d...\n', k, num_pairs);
+
         plane_save_path = plane_save_paths{k};
         image_path_01 = image_list_01{k};
         image_path_02 = image_list_02{k};
-        
+
         % Do the correlations and save the planes
         apc_save_planes(...
-            image_path_01, image_path_02, grid_y, grid_x, region_size, ...
-            window_fraction, plane_save_path);       
+        image_path_01, image_path_02, grid_y, grid_x, region_size, ...
+        window_fraction, plane_save_path);     
+
+        % End pair timer
+        t2 = toc(t1);
+
+        fprintf(1, 'Total image pair time: %0.2f sec.\n', t2);
     end
-    t2 = toc(t1);
-    fprintf(1, 'Total image pair time: %0.2f sec.\n', t2);
+   
     
     
 
