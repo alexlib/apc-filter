@@ -128,7 +128,7 @@ for n = 1 : num_jobs
             window_fraction, plane_save_path);       
     end
     t2 = toc(t1);
-    fprintf('Total image pair time: %0.2f sec.\n', t2);
+    fprintf(1, 'Total image pair time: %0.2f sec.\n', t2);
     
     
 
