@@ -55,7 +55,7 @@ region_mat_02 = extractSubRegions(image_02,...
 
 t1 = tic;
 % Loop over all the interrogation regions
-parfor k = 1 : num_regions
+for k = 1 : num_regions
     
     % Extract the subregions.
     region_01 = region_mat_01(:, :, k);

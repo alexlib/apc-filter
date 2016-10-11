@@ -113,7 +113,7 @@ for n = 1 : num_jobs
         grid_spacing, grid_buffer_y, grid_buffer_x);
     
     % Do the correlations and save the planes.
-    for k = 1 : num_pairs
+    parfor k = 1 : num_pairs
         
         fprintf(1, 'On pair %d of %d...\n', k, num_pairs);
         
@@ -124,8 +124,7 @@ for n = 1 : num_jobs
         % Do the correlations and save the planes
         apc_save_planes(...
             image_path_01, image_path_02, grid_y, grid_x, region_size, ...
-            window_fraction, plane_save_path);
-        
+            window_fraction, plane_save_path);       
     end
     
     
