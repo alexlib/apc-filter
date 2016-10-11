@@ -1,5 +1,8 @@
 function apc_job_script()
 
+% Add paths.
+addpaths('..');
+
 % Get your number from the list of hosts
 [N, S] = par_hosts();
 

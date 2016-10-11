@@ -12,7 +12,6 @@ elseif islinux
     img_repo = '/home/shannon/b/aether/piv_test_images';
 end
 
-
 % Diffusion standard deviation
 diffusion_std = 1;
 

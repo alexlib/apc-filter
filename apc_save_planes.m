@@ -53,8 +53,9 @@ region_mat_01 = extractSubRegions(image_01,...
 region_mat_02 = extractSubRegions(image_02,...
     [region_height, region_width], gx, gy);
 
+t1 = tic;
 % Loop over all the interrogation regions
-for k = 1 : num_regions
+parfor k = 1 : num_regions
     
     % Extract the subregions.
     region_01 = region_mat_01(:, :, k);
@@ -77,7 +78,12 @@ for k = 1 : num_regions
 end % End (for k = 1 : num_regions)
 
 % Save all the data
+t2 = toc(t1);
+regions_per_sec = num_regions / t2;
+fprintf('Correlated %d regions in %d sec\n.', num_regions, t2);
+fprintf(1, '%0.2f regions per second.\n', regions_per_sec);
 save(save_path, 'gx', 'gy', 'spectral_correlation_array', 'spatial_correlation_array');
+
 
 end
 
