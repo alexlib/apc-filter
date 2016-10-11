@@ -5,8 +5,8 @@ function JOB_LIST = apc_jobfile()
 region_width  = 128;
 region_height = 128 ;
 
-% img_repo = '~/Desktop/piv_test_images';
-img_repo = '/home/shannon/b/aether/piv_test_images';
+img_repo = '~/Desktop/piv_test_images';
+% img_repo = '/home/shannon/b/aether/piv_test_images';
 
 % Diffusion standard deviation
 diffusion_std = 1;

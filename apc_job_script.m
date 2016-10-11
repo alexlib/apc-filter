@@ -1,5 +1,9 @@
-function apc_job_script(N, S)
+function apc_job_script()
 
+% Get your number from the list of hosts
+[N, S] = par_hosts();
+
+% Read the job file;
 JobList = apc_jobfile;
 
 % NUmber of jobs
@@ -11,6 +15,8 @@ end_pair = 1000;
 for n = 1 : num_jobs
     
     JobFile = JobList(n);
+    
+    c_step = JobFile.Parameters.Processing.CorrelationStep;
     
     % Read the image step
     img_skip = JobFile.Images.Skip;
@@ -31,8 +37,7 @@ for n = 1 : num_jobs
     
 end
 
-
-    
-
+% Run everything
+apc_error_analysis_mc_full_images_saveplanes(JobList);
 
 end
