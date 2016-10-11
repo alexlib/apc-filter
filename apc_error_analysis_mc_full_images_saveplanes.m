@@ -112,6 +112,7 @@ for n = 1 : num_jobs
     [grid_x, grid_y] = gridImage([image_height, image_width],...
         grid_spacing, grid_buffer_y, grid_buffer_x);
     
+    t1 = tic;
     % Do the correlations and save the planes.
     for k = 1 : num_pairs
         
@@ -126,6 +127,8 @@ for n = 1 : num_jobs
             image_path_01, image_path_02, grid_y, grid_x, region_size, ...
             window_fraction, plane_save_path);       
     end
+    t2 = toc(t1);
+    fprintf('Total image pair time: %0.2f sec.\n', t2);
     
     
 
