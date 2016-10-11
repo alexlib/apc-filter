@@ -12,15 +12,11 @@ fid = fopen(host_names_path, 'r');
 host_names_list = {};
 n_hosts = 0;
 
-
-n = 0;
-
 tline = fgetl(fid);
 while ischar(tline)
-    n = n + 1;
     if tline(1) ~= '#'
         n_hosts = n_hosts + 1;
-        host_names_list{n} = tline;
+        host_names_list{n_hosts} = tline;
     end
     tline = fgetl(fid);
 end
