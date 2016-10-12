@@ -63,7 +63,7 @@ t = tic;
 for p = 1 : num_pairs
          
     % Inform the user.
-    fprintf(1, 'On image %d of %d\n', p, regions_per_pair);
+    fprintf(1, 'On image %d of %d\n', p, num_pairs);
 
     % Load the planes data
     load(planes_path_list{p});
@@ -97,7 +97,7 @@ for p = 1 : num_pairs
     parfor k = 1 : regions_per_pair
 
         % Inform the user
-        fprintf(1, 'On image %d, APC fit %d of %d\n', p, k, regions_per_pair);
+        fprintf(1, 'Image %d of %d, APC fit %d of %d\n', p, num_pairs, k, regions_per_pair);
 
         % Extract the data we need
         %
@@ -166,14 +166,15 @@ for p = 1 : num_pairs
         'tx_pair_scc', 'ty_pair_scc', ...
         'tx_pair_rpc', 'ty_pair_rpc', ...
         'tx_pair_apc', 'ty_pair_apc', ...
+        'apc_std_x_pair', 'apc_std_y_pair', ...
         'gx', 'gy');
     
-    % Make a plot
-    apc_quiver_plots(tx_apc(:, p), ty_apc(:, p), ...
-        tx_rpc(:, p), ty_rpc(:, p), ...
-        tx_scc(:, p), ty_scc(:, p), ...
-        gx, gy, [2048, 2048], 10);
-    drawnow;
+%     % Make a plot
+%     apc_quiver_plots(tx_apc(:, p), ty_apc(:, p), ...
+%         tx_rpc(:, p), ty_rpc(:, p), ...
+%         tx_scc(:, p), ty_scc(:, p), ...
+%         gx, gy, [2048, 2048], 10);
+%     drawnow;
 
 end % End (for p = 1 : num_images)
 

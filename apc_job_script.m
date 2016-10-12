@@ -9,16 +9,21 @@ addpaths('..');
 % Read the job file;
 JobList = apc_jobfile;
 
-% NUmber of jobs
+% Number of jobs
 num_jobs = length(JobList);
 
+% Which pairs to do broh
 start_pair = 1;
-end_pair = 50;
+end_pair = 1000;
 
+% Process the data broh.
 for n = 1 : num_jobs
     
+    % Pick out the job for this one, broh. 
     JobFile = JobList(n);
     
+    % This is the correlation step, broh.
+    % Make sure to get this one right, broh.
     c_step = JobFile.Parameters.Processing.CorrelationStep;
     
     % Read the image step

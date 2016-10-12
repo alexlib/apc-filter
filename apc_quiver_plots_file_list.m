@@ -1,5 +1,9 @@
-function apc_quiver_plots_02(tx_apc, ty_apc, tx_rpc, ty_rpc, tx_scc, ty_scc, grid_x, grid_y, image_size, u_max, ...
-     num_ens, diffusion_std_dev)
+function apc_quiver_plots_file_list(file_list, image_size, u_max)
+
+
+num_files = length(file_list);
+
+num_
 
 nx = length(unique(grid_x(:)));
 ny = length(unique(grid_y(:)));
@@ -12,7 +16,6 @@ image_width = image_size(2);
 Scale = 18;
 lw = 2;
 fSize = 16;
-fSize_titles = 14;
 
 Skip_x = 4;
 Skip_y = 1;
@@ -83,6 +86,8 @@ fig_pos_fract_y = 1.8;
 % fig_pos_fract_x = 0.9;
 fig_pos_x_shift = -0.05;
 
+num_ens = '';
+
 axes_width = 250;
 axes_height = 250;
 axes_y = 500;
@@ -90,8 +95,6 @@ x01 = 100;
 
 dx_pair = axes_width * 1.4;
 dx_sub = axes_width + 5;
-
-profile_ylim = 13;
 
 aw = 1;
 
@@ -101,10 +104,9 @@ quiver(gx_mat(y_inds, x_inds),...
     Scale * tx_scc_mat(y_inds, x_inds), ...
     Scale * ty_scc_mat(y_inds, x_inds),...
     0, 'color', c_blue, 'linewidth', aw);
-set(gca, 'units', 'pixels');
 % axis image
-t_01 = title(sprintf('$\\textrm{SCC, %d pairs}, \\, \\sigma_{\\Delta x} = %0.1f \\, \\textrm{pix/frame} $', num_ens, diffusion_std_dev), ...
-    'interpreter', 'latex', 'FontSize', fSize_titles);
+title(sprintf('$\\textrm{SCC, %d pairs}$', num_ens), ...
+    'interpreter', 'latex', 'FontSize', fSize);
 set(gca, 'FontSize', fSize);
 set(gca, 'ytick', []);
 box on
@@ -117,12 +119,9 @@ set(gca, 'yticklabel', xtl_prof);
 xlabel('$x / L$', 'interpreter', 'latex', 'FontSize', fSize);
 ylabel('$y / h$', 'interpreter', 'latex', 'fontsize', fSize);
 grid on
+set(gca, 'units', 'pixels');
 p = [x01, axes_y, axes_width, axes_height];
 set(gca, 'position', p);
-t_pos = get(t_01, 'Position');
-t_pos(1) = 1.2 * t_pos(1);
-set(t_01, 'Position', t_pos);
-
 
 subplot(1, 6, 2);
 % errorbar(gy, tx_mean_scc, tx_std_scc, '-', 'color', c_blue, 'linewidth', 2);
@@ -133,7 +132,7 @@ hold off
 set(gca, 'view', [90, 90]);
 
 box on;
-ylim([0, profile_ylim]);
+ylim([0, 12]);
 xlim([1, image_height]);
 set(gca, 'ytick', 0 : 2 : 10);
 set(gca, 'xtick', xt_prof);
@@ -154,8 +153,8 @@ quiver(gx_mat(y_inds, x_inds),...
     Scale * ty_rpc_mat(y_inds, x_inds),...
     0, 'color', c_red, 'linewidth', aw);
 % axis image
-t_02 = title(sprintf('$\\textrm{RPC, %d pairs}, \\, \\sigma_{\\Delta x} = %0.1f \\, \\textrm{pix/frame} $', num_ens, diffusion_std_dev), ...
-    'interpreter', 'latex', 'FontSize', fSize_titles);
+title(sprintf('$\\textrm{RPC, %d pairs}$', num_ens), ...
+    'interpreter', 'latex', 'FontSize', fSize);
 set(gca, 'FontSize', fSize);
 set(gca, 'ytick', []);
 box on
@@ -168,9 +167,6 @@ set(gca, 'yticklabel', '');
 xlabel('$x / L$', 'interpreter', 'latex', 'FontSize', fSize);
 grid on
 set(gca, 'units', 'pixels');
-t_pos = get(t_02, 'Position');
-t_pos(1) = 1.2 * t_pos(1);
-set(t_02, 'Position', t_pos);
 
 x02 = x01 + dx_pair;
 
@@ -184,7 +180,7 @@ plot(y_highres, u_exact, '--k');
 hold off
 set(gca, 'view', [90, 90]);
 box on;
-ylim([0, profile_ylim]);
+ylim([0, 12]);
 xlim([1, image_height]);
 set(gca, 'ytick', 0 : 2 : 10);
 set(gca, 'xtick', xt_prof);
@@ -205,8 +201,8 @@ quiver(gx_mat(y_inds, x_inds),...
     Scale * ty_apc_mat(y_inds, x_inds),...
     0, 'color', c_gray, 'linewidth', aw);
 % axis image
-t_03 = title(sprintf('$\\textrm{APC, %d pairs}, \\, \\sigma_{\\Delta x} = %0.1f \\, \\textrm{pix/frame} $', num_ens, diffusion_std_dev), ...
-    'interpreter', 'latex', 'FontSize', fSize_titles);
+title(sprintf('$\\textrm{APC, %d pairs}$', num_ens), ...
+    'interpreter', 'latex', 'FontSize', fSize);
 set(gca, 'FontSize', fSize);
 set(gca, 'ytick', []);
 box on
@@ -219,9 +215,6 @@ set(gca, 'yticklabel', '');
 xlabel('$x / L$', 'interpreter', 'latex', 'FontSize', fSize);
 grid on
 set(gca, 'units', 'pixels');
-t_pos = get(t_03, 'Position');
-t_pos(1) = 1.2 * t_pos(1);
-set(t_03, 'Position', t_pos);
 
 x03 = x02 + dx_pair;
 
@@ -235,7 +228,7 @@ plot(y_highres, u_exact, '--k');
 hold off
 set(gca, 'view', [90, 90]);
 box on;
-ylim([0, profile_ylim]);
+ylim([0, 12]);
 xlim([1, image_height]);
 set(gca, 'ytick', 0 : 2 : 10);
 set(gca, 'xtick', xt_prof);
@@ -251,11 +244,6 @@ set(gca, 'position', p);
 
 set(gcf, 'color', 'white');
 
-tightfig;
-
-g = [-1989         711        1091         396];
-
-set(gcf, 'outerposition', g);
 
 
 end

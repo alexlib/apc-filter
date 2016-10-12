@@ -59,17 +59,17 @@ JobFile.Images.Directory = fullfile(img_repo, case_name, 'raw');
 JobFile.Solution.Path = fullfile(img_repo, case_name, 'jobfiles', solution_file_name);
 JobFile.Images.BaseName = sprintf('%s_', case_name);
 
-JOB_LIST(1) = JobFile;
-% 
-% % % New Std Dev
-% diffusion_std = 5;
-% case_name = sprintf('poiseuille_diffusion_%0.2f', diffusion_std);
-% solution_file_name = sprintf('poiseuille_diffusion_%0.2f.mat', diffusion_std);
-% JobFile.Images.Directory = fullfile(img_repo, case_name, 'raw');
-% JobFile.Solution.Path = fullfile(img_repo, case_name, 'jobfiles', solution_file_name);
-% JobFile.Images.BaseName = sprintf('%s_', case_name);
-% 
-% JOB_LIST(end + 1) = JobFile;
+JOB_LIST(end + 1) = JobFile;
+ 
+% % New Std Dev
+diffusion_std = 5;
+case_name = sprintf('poiseuille_diffusion_%0.2f', diffusion_std);
+solution_file_name = sprintf('poiseuille_diffusion_%0.2f.mat', diffusion_std);
+JobFile.Images.Directory = fullfile(img_repo, case_name, 'raw');
+JobFile.Solution.Path = fullfile(img_repo, case_name, 'jobfiles', solution_file_name);
+JobFile.Images.BaseName = sprintf('%s_', case_name);
+
+JOB_LIST(end + 1) = JobFile;
 
 
 end
