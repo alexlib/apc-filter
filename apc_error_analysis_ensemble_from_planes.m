@@ -91,9 +91,6 @@ for p = 1 : num_pairs
     % and for some reason running the xa
     % first "region" loop in parallel
     % is slower than running it serially.
-    
-    
-    if p == num_pairs
     parfor k = 1 : regions_per_pair
 
         % Inform the user
@@ -146,7 +143,6 @@ for p = 1 : num_pairs
             1, 0, dp_static * [1, 1]);
 
     end % End (parfor k = 1 : num_regions);
-    end
     
     % Extract the data for this pair
     tx_pair_scc = tx_scc(:, p);
