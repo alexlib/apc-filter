@@ -18,31 +18,37 @@ addpaths('~/Desktop');
 % skip_image = 2;
 % c_step = 1;
 
-image_dir = '/Users/matthewgiarra/Desktop/Ball';
+image_dir = '/Users/matthewgiarra/Desktop/piv_test_images/Ball/raw';
 image_base_name = 'B';
 num_digits = 3;
 image_ext = '.bmp';
 start_image = 1;
-end_image = 50;
+end_image = 10;
 skip_image = 1;
 c_step = 1;
 trailer_a = 'a';
 trailer_b = 'b';
+
+% Ensemble length
+ens_lengths = 5;
 
 % Region sizes
 region_height = 64;
 region_width  = 64;
 
 % Window fraction
-window_fraction = 0.4;
+window_fraction = 0.5;
 
 % Grid spacing
-grid_spacing_y = 8;
-grid_spacing_x = 8;
+grid_spacing_y = 32;
+grid_spacing_x = 32;
 
 % Shuffle
 shuffle_range = 0;
 shuffle_step = 0;
+
+% RPC diameter
+rpc_diameter = 3;
 
 % Region size vector
 region_size = [region_height, region_width];
@@ -85,9 +91,9 @@ grid_buffer_y = region_height/2 * [1, 1];
 
 % Do the APC
 [APC_STD_Y, APC_STD_X, disp_pdf_std_dev_y, disp_pdf_std_dev_x] = ...
-    calculate_apc_filter_ensemble_no_shuffle(image_list_01, image_list_02, ...
+    calculate_apc_filter_ensemble(image_list_01, image_list_02, ...
     grid_y, grid_x, region_size,...
-    window_fraction);
+    window_fraction, rpc_diameter);
 
 apc_std = sqrt(APC_STD_Y.^2 + APC_STD_X.^2);
 
@@ -107,7 +113,7 @@ S = reshape(apc_std, [ny, nx]);
 
 
 % Calculate the RPC filter size
-rpc_filter = spectralEnergyFilter(region_height, region_width, 3);
+rpc_filter = spectralEnergyFilter(region_height, region_width, rpc_diameter);
 apc_filt_rep = exp(-(x.^2) / (2 * sx_apc_01^2)) .* exp(-(y.^2) / (2 * sy_apc_01^2));
 
 % Because what isn't these days
@@ -117,8 +123,6 @@ rpc_dia = sqrt(rpc_std_y^2 + rpc_std_x^2);
 
 
 % ens_lengths = [5, 10, 15, 20, 50, 250, 500];
-
-ens_lengths = 5;
 
 for e = 1 : length(ens_lengths)
     
@@ -165,9 +169,9 @@ Scale = 10;
 lw = 2;
 fSize = 16;
 
-Skip_x = 16;
-Skip_y_quiv = 4;
-Skip_y_prof = 4; 
+Skip_x = 1;
+Skip_y_quiv = 1;
+Skip_y_prof = 1; 
 
 gx_mat = reshape(grid_x, ny, nx);
 gy_mat = reshape(grid_y, ny, nx);

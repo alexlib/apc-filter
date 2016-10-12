@@ -1,6 +1,6 @@
 function [APC_STD_Y, APC_STD_X, DX_STD_DEV_Y, DX_STD_DEV_X] = ...
     calculate_apc_filter_ensemble(image_list_01, image_list_02, ...
-    grid_y, grid_x, region_size, window_fraction, shuffle_range, shuffle_step)
+    grid_y, grid_x, region_size, window_fraction, rpc_diameter, shuffle_range, shuffle_step)
 % APC_STD_Y, APC_STD_X, APC_FILTER] = ...
 %     calculate_apc_filter_from_image_pair(image_01, image_02, ...
 %     grid_y, grid_x, region_size, window_fraction, shuffle_range, shuffle_step)
@@ -90,15 +90,23 @@ function [APC_STD_Y, APC_STD_X, DX_STD_DEV_Y, DX_STD_DEV_X] = ...
 
 % Default to not shuffling
 % the interrogation regions.
-if nargin < 8
+if nargin < 9
     shuffle_step = 0;
 end
 
 % Default to not shuffling
 % the interrogation regions.
-if nargin < 7
+if nargin < 8
     shuffle_range = 0;
 end;
+
+% Default to rpc diameter of 3 pixels
+if nargin < 7
+    rpc_diameter = 3;
+end
+
+% Convert the RPC diameter to the std dev of the filter
+rpc_std_dev = 8 * pi^2 / rpc_diameter;
 
 % This is the number of images that will be correlated.
 num_images = length(image_list_01);
@@ -242,11 +250,32 @@ parfor k = 1 : num_regions
     spectral_corr = spectral_correlation_array(:, :, k);
     auto_corr = auto_correlation_array(:, :, k);
     
-        % Fit a Gaussian function to the magnitude
+    % Do a little median filter
+    cc_spect_real_filt  = medfilt2(real(spectral_corr), [5, 5]);
+    cc_spect_imag_filt = medfilt2(imag(spectral_corr), [5, 5]);
+    cc_spect_filt = cc_spect_real_filt + 1i * cc_spect_imag_filt;
+    
+    % Fit a Gaussian function to the magnitude
     % of the complex correlation, 
     % which should represent the SNR versus wavenumber.
-    [~, APC_STD_Y(k), APC_STD_X(k)] =...
-        fit_gaussian_2D(abs(spectral_corr));
+    [~, sy, sx] =...
+        fit_gaussian_2D(abs(cc_spect_filt));
+    
+    % The fit can crap out and come back with
+    % a standard deviation of less than 1. This is nonphysical
+    % and can be used as a flag.
+    if sx <= 1
+        sx = rpc_std_dev
+    end
+    if sy <= 1
+        sy = rpc_std_dev
+    end
+    
+    % Take the APC diameter as the minimum
+    % between the RPC equivalent std dev
+    % and the standard deviation diameter.
+    APC_STD_Y(k) = min(rpc_std_dev, sy);
+    APC_STD_X(k) = min(rpc_std_dev, sx);
     
     % This is the cross correlation divided by the auto correlation
     cc_div = spectral_corr ./ auto_corr;
@@ -262,8 +291,6 @@ parfor k = 1 : num_regions
     DX_STD_DEV_Y(k) = pi^2 / (ft_pdf_std_dev_y);
     DX_STD_DEV_X(k) = pi^2 / (ft_pdf_std_dev_x);
     
-
-   
 end
 
 end

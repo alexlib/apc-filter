@@ -7,9 +7,6 @@ function [ty_apc, tx_apc, ...
 % This is the number of images that were correlated
 num_pairs = length(planes_path_list);
 
-% Static particle diameter
-dp_static = 4 * abs(pi^2 / (sqrt(2) * rpc_diameter));
-
 % Load the first file to count some things
 load(planes_path_list{1});
 
@@ -19,6 +16,9 @@ load(planes_path_list{1});
 % Make the RPC filter
 rpc_filter = spectralEnergyFilter(...
     region_height, region_width, rpc_diameter);
+
+% Fit to the RPC filter
+[~, sy_rpc, sx_rpc] = fit_gaussian_2D(rpc_filter);
 
 % SCC ensemble
 scc_ensemble = zeros(region_height, region_width, regions_per_pair);
@@ -48,7 +48,7 @@ ty_scc = zeros(regions_per_pair, num_pairs);
 tx_scc = zeros(regions_per_pair, num_pairs);
 
 % Make the interrogation region coordinate vectors
-xv2 = ((1 : region_width) - fourier_zero(region_width)) .^2;
+xv2 = ((1 : region_width) - fourier_zero(region_width)).^2;
 yv2 = ((1 : region_height) - fourier_zero(region_height)).^2;
 
 % Make the interrogation region coordinate arrays
@@ -90,8 +90,8 @@ for p = 1 : num_pairs
     % so that it can be run in parallel,
     % and for some reason running the xa
     % first "region" loop in parallel
-    % is slower than running it serially.
-    parfor k = 1 : regions_per_pair
+    % is slower than running it serially.  
+    for k = 1 : regions_per_pair
 
         % Inform the user
         fprintf(1, 'Image %d of %d, APC fit %d of %d\n', p, num_pairs, k, regions_per_pair);
@@ -104,24 +104,40 @@ for p = 1 : num_pairs
 
         % Spectral Planes
         cc_spectral = complex_cc_ensemble(:, :, k);
+        
+        cc_spect_real = medfilt2(real(cc_spectral), 5 * [1, 1]);
+        cc_spect_imag = medfilt2(imag(cc_spectral), 5 * [1, 1]);
+        cc_spect_filt = abs(cc_spect_real + 1i * cc_spect_imag);
 
         % First calculate the APC filters
         % Fit a Gaussian function to the magnitude
         % of the complex correlation, 
         % which should represent the SNR versus wavenumber.
+%         [~, sy_apc, sx_apc] =...
+%             fit_gaussian_2D(abs(cc_spectral), 25 * [1, 1]);
         [~, sy_apc, sx_apc] =...
-            fit_gaussian_2D(abs(cc_spectral));
-    
+            fit_gaussian_2D(cc_spect_filt);
+        
+        % Pick the minimum between the calculated
+        % APC diameter and the analytical RPC diameter.
+        % In other words, set the RPC diameter 
+        % as the upper bound to the filter size.
+        sx = min(sx_apc, sx_rpc);
+        sy = min(sy_apc, sy_rpc);
+
         % APC filter
-        apc_filt = exp(-x2 ./ (2 * sx_apc^2) - y2 ./ (2 * sy_apc^2));
+        apc_filt = exp(-x2 ./ (2 * sx^2) - y2 ./ (2 * sy^2));
+        
+        surf(apc_filt);
+        drawnow;
 
         % Equivalent particle diameters
-        dp_equiv_x = 4 * abs(pi^2 / (sqrt(2) * sx_apc));
-        dp_equiv_y = 4 * abs(pi^2 / (sqrt(2) * sy_apc));
+        dp_equiv_x = 8 * pi^2 / sx;
+        dp_equiv_y = 8 * pi^2 / sy;
 
         % Save APC standard deviations to output variables
-        apc_std_x(k, p) = sx_apc;
-        apc_std_y(k, p) = sy_apc;
+        apc_std_x(k, p) = sx;
+        apc_std_y(k, p) = sy;
 
         % Filter the spectral correlation and invert it
         apc_spatial = fftshift(abs(ifft2(fftshift(...
@@ -135,12 +151,12 @@ for p = 1 : num_pairs
         % RPC Subpixel fit
         [tx_rpc(k, p), ty_rpc(k, p)] = subpixel(...
             rpc_spatial, region_width, region_height, subpix_weights,...
-            1, 0, dp_static * [1, 1]);
+            1, 0, rpc_diameter * [1, 1]);
 
         % SCC Subpixel fit
         [tx_scc(k, p), ty_scc(k, p)] = subpixel(...
             scc_spatial, region_width, region_height, subpix_weights,...
-            1, 0, dp_static * [1, 1]);
+            1, 0, rpc_diameter * [1, 1]);
 
     end % End (parfor k = 1 : num_regions);
     

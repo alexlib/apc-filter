@@ -9,7 +9,7 @@
 
 addpaths('..');
 
-diffusion_std = 1;
+diffusion_std = 5;
 
 image_dir = sprintf('/Users/matthewgiarra/Desktop/piv_test_images/poiseuille_diffusion_%0.2f/raw', diffusion_std);
 image_base_name = sprintf('poiseuille_diffusion_%0.2f_', diffusion_std);
@@ -22,10 +22,10 @@ c_step = 1;
 
 rpc_diameter = 3.0;
 
-ens_lengths = 2;
+ens_lengths = 10;
 
 end_image = 2 * ens_lengths(1);
-
+% end_image = 100;
 
 % image_dir = '/Users/matthewgiarra/Desktop/Ball';
 % image_base_name = 'poiseuille_diffusion_3.00_';
@@ -101,7 +101,7 @@ grid_spacing = [grid_spacing_y, grid_spacing_x];
 [APC_STD_Y, APC_STD_X, disp_pdf_std_dev_y, disp_pdf_std_dev_x] = ...
     calculate_apc_filter_ensemble(image_list_01, image_list_02, ...
     grid_y, grid_x, region_size,...
-    window_fraction, shuffle_range, shuffle_step);
+    window_fraction, rpc_diameter, shuffle_range, shuffle_step);
 
 apc_std = sqrt(APC_STD_Y.^2 + APC_STD_X.^2);
 

@@ -1,14 +1,13 @@
 
 function JOB_LIST = apc_jobfile()
 
-
 region_width  = 128;
 region_height = 128 ;
 
 % Decide where the image repo is
 if ismac
     img_repo = '~/Desktop/piv_test_images';
-%       img_repo = '/Volumes/duo/piv_test_images/';
+%       img_repo = '/Volumes/aether_b/piv_test_images/';
 elseif islinux
     img_repo = '/home/shannon/b/aether/piv_test_images';
 end
@@ -33,6 +32,8 @@ JobFile.Images.End = 2000;
 JobFile.Images.Skip = 2;
 JobFile.Images.Trailer_01 = '';
 JobFile.Images.Trailer_02 = '';
+JobFile.Images.Height = 2048;
+JobFile.Images.Width = 2048;
 
 JobFile.Parameters.Processing.CorrelationStep = 1;
 JobFile.Parameters.Processing.RegionWidth  = region_width;
@@ -47,6 +48,10 @@ JobFile.Parameters.Processing.Grid.Spacing.X = 64;
 JobFile.Parameters.Processing.Grid.Spacing.Y = 64;
 JobFile.Parameters.Processing.Grid.Buffer.X = round(region_width  /2) * [1, 1];
 JobFile.Parameters.Processing.Grid.Buffer.Y = round(region_height /2) * [1, 1];
+
+JobFile.JobOptions.DoCorrelations = false;
+JobFile.JobOptions.CalculateDisplacements = false;
+JobFile.JobOptions.CalculateError = true;
 
 
 JOB_LIST(1) = JobFile;

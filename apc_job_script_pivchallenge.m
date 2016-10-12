@@ -1,4 +1,4 @@
-function apc_job_script(do_corr, do_fit, job_nums)
+function apc_job_script_pivchallenge(do_corr, do_fit)
 
 % Add paths.
 addpaths('..');
@@ -7,18 +7,14 @@ addpaths('..');
 [N, S] = par_hosts();
 
 % Read the job file;
-JobList = apc_jobfile;
+JobList = apc_jobfile_pivchallenge;
 
 % Number of jobs
 num_jobs = length(JobList);
 
-if nargin < 3
-    job_nums = 1 : num_jobs;
-end
-
 % Which pairs to do broh
 start_pair = 1;
-end_pair = 1000;
+end_pair = 100;
 
 % Process the data broh.
 for n = 1 : num_jobs
@@ -51,13 +47,16 @@ end
 
 % Run everything
 if do_corr
-    apc_error_analysis_mc_full_images_saveplanes(JobList(job_nums));
+    apc_error_analysis_experimental_full_images_saveplanes(JobList);
 end
 
 if do_fit
-    apc_error_analysis_mc_full_images_loadplanes(JobList(job_nums));
+    apc_error_analysis_experimental_full_images_loadplanes(JobList);
 end
 
+if do_error
+    
+end
 
 
 end
