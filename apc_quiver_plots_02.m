@@ -8,7 +8,7 @@ gy = unique(grid_y);
 image_height = image_size(1);
 image_width = image_size(2);
 
-Scale = 10;
+Scale = 18;
 lw = 2;
 fSize = 16;
 
@@ -39,7 +39,7 @@ tx_std_apc = std(tx_apc_mat, 0, 2);
 tx_std_rpc = std(tx_rpc_mat, 0, 2);
 tx_std_scc = std(tx_scc_mat, 0, 2);
 
-nticks_x = 4;
+
 % nticks_y = 4;
 % xtl = num2cell(linspace(1, 10, nticks_x) / 10);
 % xt = linspace(1, image_width, nticks_x);
@@ -83,13 +83,23 @@ fig_pos_x_shift = -0.05;
 
 num_ens = '';
 
-subplot(2, 3, 1)
+axes_width = 250;
+axes_height = 250;
+axes_y = 500;
+x01 = 100;
+
+dx_pair = axes_width * 1.4;
+dx_sub = axes_width + 5;
+
+aw = 1;
+
+subplot(1, 6, 1)
 quiver(gx_mat(y_inds, x_inds),...
     gy_mat(y_inds, x_inds), ...
     Scale * tx_scc_mat(y_inds, x_inds), ...
     Scale * ty_scc_mat(y_inds, x_inds),...
-    0, 'color', c_blue, 'linewidth', lw);
-axis image
+    0, 'color', c_blue, 'linewidth', aw);
+% axis image
 title(sprintf('$\\textrm{SCC, %d pairs}$', num_ens), ...
     'interpreter', 'latex', 'FontSize', fSize);
 set(gca, 'FontSize', fSize);
@@ -104,16 +114,40 @@ set(gca, 'yticklabel', xtl_prof);
 xlabel('$x / L$', 'interpreter', 'latex', 'FontSize', fSize);
 ylabel('$y / h$', 'interpreter', 'latex', 'fontsize', fSize);
 grid on
+set(gca, 'units', 'pixels');
+p = [x01, axes_y, axes_width, axes_height];
+set(gca, 'position', p);
+
+subplot(1, 6, 2);
+% errorbar(gy, tx_mean_scc, tx_std_scc, '-', 'color', c_blue, 'linewidth', 2);
+shadedErrorBar(gy, tx_mean_scc, tx_std_scc, linespec_blue);
+hold on
+plot(y_highres, u_exact, '--k');
+hold off
+set(gca, 'view', [90, 90]);
+
+box on;
+ylim([0, 12]);
+xlim([1, image_height]);
+set(gca, 'ytick', 0 : 2 : 10);
+set(gca, 'xtick', xt_prof);
+set(gca, 'xticklabel', '');
+set(gca, 'yticklabel', '');
+grid on
+set(gca, 'xdir', 'reverse')
+set(gca, 'FontSize', fSize);
+set(gca, 'units', 'pixels');
+p = [x01 + dx_sub, axes_y, 0.25 * axes_width, axes_height];
+set(gca, 'position', p);
 
 
-
-subplot(2, 3, 2)
+subplot(1, 6, 3)
 quiver(gx_mat(y_inds, x_inds),...
     gy_mat(y_inds, x_inds), ...
     Scale * tx_rpc_mat(y_inds, x_inds), ...
     Scale * ty_rpc_mat(y_inds, x_inds),...
-    0, 'color', c_red, 'linewidth', lw);
-axis image
+    0, 'color', c_red, 'linewidth', aw);
+% axis image
 title(sprintf('$\\textrm{RPC, %d pairs}$', num_ens), ...
     'interpreter', 'latex', 'FontSize', fSize);
 set(gca, 'FontSize', fSize);
@@ -126,111 +160,84 @@ set(gca, 'xtick', xt_quiv);
 set(gca, 'xticklabel', xtl_prof);
 set(gca, 'yticklabel', '');
 xlabel('$x / L$', 'interpreter', 'latex', 'FontSize', fSize);
-p = get(gca, 'position');
-p(1) =  p(1) + fig_pos_x_shift;
-set(gca, 'position', p);
 grid on
+set(gca, 'units', 'pixels');
 
-subplot(2, 3, 3)
-quiver(gx_mat(y_inds, x_inds),...
-    gy_mat(y_inds, x_inds), ...
-    Scale * tx_apc_mat(y_inds, x_inds), ...
-    Scale * ty_apc_mat(y_inds, x_inds),...
-    0, 'color', 'black', 'linewidth', lw);
-axis image
-title(sprintf('$\\textrm{APC, %d pairs}$', num_ens), ...
-    'interpreter', 'latex', 'FontSize', fSize);
-set(gca, 'FontSize', fSize);
-box on
-ylim([1, image_height]);
-xlim([1, image_width]);
-set(gca, 'yticklabel', '');
-set(gca, 'ytick', xt_prof);
-set(gca, 'xtick', xt_quiv);
-set(gca, 'xticklabel', xtl_prof);
-xlabel('$x / L$', 'interpreter', 'latex', 'FontSize', fSize);
-p = get(gca, 'position');
-p(1) =  p(1) + 2 * fig_pos_x_shift;
+x02 = x01 + dx_pair;
+
+p = [x02, axes_y, axes_width, axes_height];
 set(gca, 'position', p);
-grid on
 
-
-subplot(2, 3, 4);
-% errorbar(gy, tx_mean_scc, tx_std_scc, '-', 'color', c_blue, 'linewidth', 2);
-shadedErrorBar(gy, tx_mean_scc, tx_std_scc, linespec_blue);
-hold on
-plot(y_highres, u_exact, '--k');
-hold off
-set(gca, 'view', [90, 90]);
-axis square;
-box on;
-ylim([0, 12]);
-set(gca, 'ytick', 0 : 2 : 10);
-set(gca, 'xtick', xt_prof);
-xlim([1, image_height]);
-ylabel('$\textrm{Axial velocity (pix / frame)}$',...
-    'interpreter', 'latex', 'FontSize', fSize);
-xlabel('$y / h$', 'interpreter', 'latex', 'FontSize', fSize);
-set(gca, 'xticklabel', xtl_prof);
-set(gca, 'xdir', 'reverse')
-set(gca, 'FontSize', fSize);
-p = get(gca, 'position');
-p(2) = fig_pos_fract_y * p(2);
-set(gca, 'position', p);
-grid on
-
-
-subplot(2, 3, 5);
-% errorbar(gy, tx_mean_rpc, tx_std_rpc, '-', 'color', c_red, 'linewidth', 2);
+subplot(1, 6, 4);
 shadedErrorBar(gy, tx_mean_rpc, tx_std_rpc, linespec_red);
 hold on
 plot(y_highres, u_exact, '--k');
 hold off
 set(gca, 'view', [90, 90]);
-axis square;
 box on;
 ylim([0, 12]);
+xlim([1, image_height]);
 set(gca, 'ytick', 0 : 2 : 10);
 set(gca, 'xtick', xt_prof);
-xlim([1, image_height]);
-ylabel('$\textrm{Axial velocity (pix / frame)}$',...
-    'interpreter', 'latex', 'FontSize', fSize);
-set(gca, 'xdir', 'reverse')
-set(gca, 'xticklabel', {''});
-set(gca, 'FontSize', fSize);
-p = get(gca, 'position');
-p(2) = fig_pos_fract_y * p(2);
-p(1) =  p(1) + fig_pos_x_shift;
-set(gca, 'position', p);
+set(gca, 'xticklabel', '');
+set(gca, 'yticklabel', '');
 grid on
+set(gca, 'xdir', 'reverse')
+set(gca, 'FontSize', fSize);
+set(gca, 'units', 'pixels');
+p = [x02 + dx_sub, axes_y, 0.25 * axes_width, axes_height];
+set(gca, 'position', p);
 
-subplot(2, 3, 6);
-% errorbar(gy, tx_mean_apc, tx_std_apc, '-k', 'linewidth', 2);
+
+subplot(1, 6, 5)
+quiver(gx_mat(y_inds, x_inds),...
+    gy_mat(y_inds, x_inds), ...
+    Scale * tx_apc_mat(y_inds, x_inds), ...
+    Scale * ty_apc_mat(y_inds, x_inds),...
+    0, 'color', c_gray, 'linewidth', aw);
+% axis image
+title(sprintf('$\\textrm{APC, %d pairs}$', num_ens), ...
+    'interpreter', 'latex', 'FontSize', fSize);
+set(gca, 'FontSize', fSize);
+set(gca, 'ytick', []);
+box on
+ylim([1, image_height]);
+xlim([1, image_width]);
+set(gca, 'ytick', xt_prof);
+set(gca, 'xtick', xt_quiv);
+set(gca, 'xticklabel', xtl_prof);
+set(gca, 'yticklabel', '');
+xlabel('$x / L$', 'interpreter', 'latex', 'FontSize', fSize);
+grid on
+set(gca, 'units', 'pixels');
+
+x03 = x02 + dx_pair;
+
+p = [x03, axes_y, axes_width, axes_height];
+set(gca, 'position', p);
+
+subplot(1, 6, 6);
 shadedErrorBar(gy, tx_mean_apc, tx_std_apc, linespec_gray);
 hold on
 plot(y_highres, u_exact, '--k');
 hold off
 set(gca, 'view', [90, 90]);
-axis square;
 box on;
 ylim([0, 12]);
 xlim([1, image_height]);
 set(gca, 'ytick', 0 : 2 : 10);
-ylabel('$\textrm{Axial velocity (pix / frame)}$',...
-    'interpreter', 'latex', 'FontSize', fSize);
 set(gca, 'xtick', xt_prof);
 set(gca, 'xticklabel', '');
+set(gca, 'yticklabel', '');
+grid on
 set(gca, 'xdir', 'reverse')
 set(gca, 'FontSize', fSize);
-p = get(gca, 'position');
-p(2) = fig_pos_fract_y * p(2);
-p(1) =  p(1) + 2 * fig_pos_x_shift;
+set(gca, 'units', 'pixels');
+p = [x03 + dx_sub, axes_y, 0.25 * axes_width, axes_height];
 set(gca, 'position', p);
-grid on
+
 
 set(gcf, 'color', 'white');
-
-set(gcf, 'position', [-2115         524        1557         955]);
 
 
 tightfig;

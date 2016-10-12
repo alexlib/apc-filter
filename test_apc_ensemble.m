@@ -9,18 +9,23 @@
 
 addpaths('..');
 
-diffusion_std = 3;
+diffusion_std = 1;
 
 image_dir = sprintf('/Users/matthewgiarra/Desktop/piv_test_images/poiseuille_diffusion_%0.2f/raw', diffusion_std);
 image_base_name = sprintf('poiseuille_diffusion_%0.2f_', diffusion_std);
 num_digits = 6;
 image_ext = '.tiff';
 start_image = 1;
-end_image = 50;
+
 skip_image = 2;
 c_step = 1;
 
 rpc_diameter = 3.0;
+
+ens_lengths = 2;
+
+end_image = 2 * ens_lengths(1);
+
 
 % image_dir = '/Users/matthewgiarra/Desktop/Ball';
 % image_base_name = 'poiseuille_diffusion_3.00_';
@@ -38,8 +43,8 @@ region_width  = 128;
 window_fraction = 0.5;
 
 % Grid spacing
-grid_spacing_y = 64;
-grid_spacing_x = 64;
+grid_spacing_y = 256;
+grid_spacing_x = 256;
 
 % grid_buffer_y = 500 * [1, 1];
 % grid_buffer_x = 630 * [1, 1];
@@ -114,7 +119,6 @@ ny = length(unique(grid_y));
 
 S = reshape(apc_std, [ny, nx]);
 
-
 % Calculate the RPC filter size
 rpc_filter = spectralEnergyFilter(region_height, region_width, rpc_diameter);
 apc_filt_rep = exp(-(x.^2) / (2 * sx_apc_01^2)) .* exp(-(y.^2) / (2 * sy_apc_01^2));
@@ -124,10 +128,10 @@ apc_filt_rep = exp(-(x.^2) / (2 * sx_apc_01^2)) .* exp(-(y.^2) / (2 * sy_apc_01^
  
 rpc_dia = sqrt(rpc_std_y^2 + rpc_std_x^2);
 
-% ens_lengths = [1, 5, 10, 15, 20, 50];
-% ens_lengths = 2 : 4;
+% Minimum diameters 
+apc_std_x = min(rpc_std_x, APC_STD_X);
+apc_std_y = min(rpc_std_y, APC_STD_Y);
 
-ens_lengths = 25;
 
 for e = 1 : length(ens_lengths)
     
@@ -140,7 +144,7 @@ for e = 1 : length(ens_lengths)
 [ty_apc, tx_apc] = ...
     apc_ensemble(image_list_01(1:num_ens), image_list_02(1:num_ens), ...
     grid_y, grid_x, region_size,...
-    window_fraction, APC_STD_Y, APC_STD_X);
+    window_fraction, apc_std_y, apc_std_x);
 
 [ty_rpc, tx_rpc] = ...
      rpc_ensemble_spatial(image_list_01(1:num_ens), image_list_02(1:num_ens), ...
@@ -155,7 +159,7 @@ Scale = 10;
 lw = 2;
 fSize = 16;
 
-Skip_x = 4;
+Skip_x = 1;
 Skip_y = 1;
 
 gx_mat = reshape(grid_x, ny, nx);
@@ -380,7 +384,7 @@ set(gcf, 'position', [-2115         524        1557         955]);
 
 
 tightfig;
-fig_save_name = sprintf('~/Desktop/piv_results/figs_dp_6/fig_diff_%0.2f_ens_%d.png', diffusion_std, num_ens);
+fig_save_name = sprintf('~/Desktop/piv_results/figs_dp_3/fig_diff_%0.2f_ens_%d.png', diffusion_std, num_ens);
 
 
 export_fig(fig_save_name, '-r300');

@@ -1,4 +1,4 @@
-function apc_job_script()
+function apc_job_script(do_corr, do_fit)
 
 % Add paths.
 addpaths('..');
@@ -13,7 +13,7 @@ JobList = apc_jobfile;
 num_jobs = length(JobList);
 
 start_pair = 1;
-end_pair = 1000;
+end_pair = 50;
 
 for n = 1 : num_jobs
     
@@ -41,6 +41,13 @@ for n = 1 : num_jobs
 end
 
 % Run everything
-apc_error_analysis_mc_full_images_saveplanes(JobList);
+if do_corr
+    apc_error_analysis_mc_full_images_saveplanes(JobList);
+end
+
+if do_fit
+    apc_error_analysis_mc_full_images_loadplanes(JobList);
+end
+
 
 end

@@ -176,8 +176,8 @@ for k = 1 : num_regions
         region_width, region_height, ones(size(spatial_corr_filt)), ...
         1, 0, [dp_x, dp_y]);
     
-    TX(k) = -1 * tx;
-    TY(k) = -1 * ty;
+    TX(k) = tx;
+    TY(k) = ty;
    
 end
 

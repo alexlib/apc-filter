@@ -232,10 +232,6 @@ for p = 1 : num_images
 end % End (for p = 1 : num_images)
 
 
- 
-
-
-
 % Do the Gaussian fitting
 parfor k = 1 : num_regions
     
@@ -269,13 +265,6 @@ parfor k = 1 : num_regions
 
    
 end
-
-apc_std_y = APC_STD_Y;
-apc_std_x = APC_STD_X;
-
-save('~/Desktop/debug/old_code_vars.mat', 'spectral_correlation_array', 'apc_std_y', 'apc_std_x');
-   
-
 
 end
 
