@@ -239,7 +239,6 @@ for p = 1 : num_images
 
 end % End (for p = 1 : num_images)
 
-
 % Do the Gaussian fitting
 parfor k = 1 : num_regions
     
@@ -251,24 +250,24 @@ parfor k = 1 : num_regions
     auto_corr = auto_correlation_array(:, :, k);
     
     % Do a little median filter
-    cc_spect_real_filt  = medfilt2(real(spectral_corr), [5, 5]);
-    cc_spect_imag_filt = medfilt2(imag(spectral_corr), [5, 5]);
-    cc_spect_filt = cc_spect_real_filt + 1i * cc_spect_imag_filt;
-    
+%     cc_spect_real_filt  = medfilt2(real(spectral_corr), [5, 5]);
+%     cc_spect_imag_filt = medfilt2(imag(spectral_corr), [5, 5]);
+%     cc_spect_filt = cc_spect_real_filt + 1i * cc_spect_imag_filt;
+%     
     % Fit a Gaussian function to the magnitude
     % of the complex correlation, 
     % which should represent the SNR versus wavenumber.
     [~, sy, sx] =...
-        fit_gaussian_2D(abs(cc_spect_filt));
+        fit_gaussian_2D(abs(spectral_corr));
     
     % The fit can crap out and come back with
     % a standard deviation of less than 1. This is nonphysical
     % and can be used as a flag.
     if sx <= 1
-        sx = rpc_std_dev
+        sx = rpc_std_dev;
     end
     if sy <= 1
-        sy = rpc_std_dev
+        sy = rpc_std_dev;
     end
     
     % Take the APC diameter as the minimum
@@ -276,6 +275,10 @@ parfor k = 1 : num_regions
     % and the standard deviation diameter.
     APC_STD_Y(k) = min(rpc_std_dev, sy);
     APC_STD_X(k) = min(rpc_std_dev, sx);
+    
+%     % Update the std dev guesses
+%     apc_std_x_guess = APC_STD_X(k);
+%     apc_std_y_guess = APC_STD_X(k);
     
     % This is the cross correlation divided by the auto correlation
     cc_div = spectral_corr ./ auto_corr;

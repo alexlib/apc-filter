@@ -31,8 +31,6 @@ JobFile.Images.Skip = 1;
 JobFile.Images.Trailer_01 = 'a';
 JobFile.Images.Trailer_02 = 'b';
 
-
-
 JobFile.Parameters.Processing.CorrelationStep = 0;
 JobFile.Parameters.Processing.RegionWidth  = region_width;
 JobFile.Parameters.Processing.RegionHeight = region_height;
@@ -44,13 +42,15 @@ JobFile.Parameters.Processing.Shuffle.Step.Y = 0;
 
 JobFile.Parameters.Processing.Grid.Spacing.X = 16;
 JobFile.Parameters.Processing.Grid.Spacing.Y = 16;
-JobFile.Parameters.Processing.Grid.Buffer.X = round(region_width  /2) * [1, 1];
-JobFile.Parameters.Processing.Grid.Buffer.Y = round(region_height /2) * [1, 1];
+JobFile.Parameters.Processing.Grid.Buffer.X = ...
+    round(region_width  /2) * [1, 1];
+JobFile.Parameters.Processing.Grid.Buffer.Y = ...
+    round(region_height /2) * [1, 1];
 
 % RPC Diameter
 JobFile.Parameters.Processing.RpcDiameter = 3;
 
-JobFile.JobOptions.DoCorrelations = false;
+JobFile.JobOptions.DoCorrelations = true;
 JobFile.JobOptions.CalculateDisplacements = true;
 JobFile.JobOptions.CalculateError = false;
 

@@ -1,9 +1,9 @@
 % compare_std_devs
 
 pair_01 = 1;
-pair_02 = 100;
+pair_02 = 10;
 
-ca = [20, 30];
+ca = [20, 35];
 
 vect_dir = '/Users/matthewgiarra/Desktop/piv_test_images/Ball/vect/';
 

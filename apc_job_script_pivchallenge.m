@@ -54,9 +54,5 @@ if do_fit
     apc_error_analysis_experimental_full_images_loadplanes(JobList);
 end
 
-if do_error
-    
-end
-
 
 end

@@ -74,12 +74,11 @@ for n = 1 : num_jobs
 
     end
     
-    
     if calculate_displacements
         % Do the displacement measurements
         apc_error_analysis_ensemble_from_planes(...
-            plane_save_paths, rpc_diameter, ...
-            vector_save_paths);
+            plane_save_paths, ...
+            vector_save_paths, rpc_diameter);
     end
   
     % Calculate errors?
