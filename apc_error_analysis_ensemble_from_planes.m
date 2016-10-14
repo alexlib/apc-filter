@@ -112,7 +112,7 @@ for p = 1 : num_pairs
         
         % Fit to the correlation magnitude
         [~, sy_fit, sx_fit] =...
-            fit_gaussian_2D(abs(cc_spectral));
+            fit_gaussian_2D(abs(cc_spectral) ./ max(abs(cc_spectral(:))));
         
         % The fit can crap out and come back with
         % a standard deviation of less than 1. This is nonphysical

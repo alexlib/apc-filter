@@ -9,7 +9,7 @@ function [ty_apc, tx_apc, ...
 num_images = length(image_list_01);
 
 % Static particle diameter
-dp_static = 4 * abs(pi^2 / (sqrt(2) * rpc_diameter));
+dp_static = rpc_diameter / 4;
 
 % % Extract grid coordinates
 gy = grid_y(:);
@@ -122,58 +122,69 @@ for p = 1 : num_images
     % and for some reason running the xa
     % first "region" loop in parallel
     % is slower than running it serially.
-        parfor k = 1 : num_regions
+%     if p == 50
+    for k = 1 : num_regions
+        % Inform the user
+        fprintf(1, 'On image %d, APC fit %d of %d\n', p, k, num_regions);
 
-            % Inform the user
-            fprintf(1, 'On image %d, APC fit %d of %d\n', p, k, num_regions);
+        % Extract the data we need
+        %
+        % Spatial planes
+        scc_spatial = scc_ensemble(:, :, k);
+        rpc_spatial = rpc_ensemble(:, :, k);
 
-            % Extract the data we need
-            %
-            % Spatial planes
-            scc_spatial = scc_ensemble(:, :, k);
-            rpc_spatial = rpc_ensemble(:, :, k);
+        % Spectral Planes
+        cc_spectral = spectral_correlation_array(:, :, k);
 
-            % Spectral Planes
-            cc_spectral = spectral_correlation_array(:, :, k);
+        % First calculate the APC filters
+        % Fit a Gaussian function to the magnitude
+        % of the complex correlation, 
+        % which should represent the SNR versus wavenumber.
+%         [~, sy_apc, sx_apc] =...
+%             fit_gaussian_2D(abs(cc_spectral ./ max(abs(cc_spectral(:)))));
 
-            % First calculate the APC filters
-            % Fit a Gaussian function to the magnitude
-            % of the complex correlation, 
-            % which should represent the SNR versus wavenumber.
-            [~, sy_apc, sx_apc] =...
-                fit_gaussian_2D(abs(cc_spectral));
+        [~, sy_apc, sx_apc] =...
+            fit_gaussian_2D(abs(cc_spectral));
+        
+        % APC filter
+        apc_filt = exp(-x2 ./ (2 * sx_apc^2) - y2 ./ (2 * sy_apc^2));
 
-            % APC filter
-            apc_filt = exp(-x2 ./ (2 * sx_apc^2) - y2 ./ (2 * sy_apc^2));
+        % Equivalent particle diameters
+        dp_equiv_x = 8 * pi^2 / sx_apc;
+        dp_equiv_y = 8 * pi^2 / sy_apc;
 
-            % Equivalent particle diameters
-            dp_equiv_x = 4 * abs(pi^2 / (sqrt(2) * sx_apc));
-            dp_equiv_y = 4 * abs(pi^2 / (sqrt(2) * sy_apc));
-            
-            % Save APC standard deviations to output variables
-            apc_std_x(k, p) = sx_apc;
-            apc_std_y(k, p) = sy_apc;
+        % Save APC standard deviations to output variables
+        apc_std_x(k, p) = sx_apc;
+        apc_std_y(k, p) = sy_apc;
 
-            % Filter the spectral correlation and invert it
-            apc_spatial = fftshift(abs(ifft2(fftshift(...
-                phaseOnlyFilter(cc_spectral) .* apc_filt))));
+        % Filter the spectral correlation and invert it
+        apc_spatial = fftshift(abs(ifft2(fftshift(...
+            phaseOnlyFilter(cc_spectral) .* apc_filt))));
 
-            % APC Subpixel fit
-            [tx_apc(k, p), ty_apc(k, p)] = subpixel(...
-                apc_spatial, region_width, region_height, subpix_weights,...
-                1, 0, [dp_equiv_x, dp_equiv_y]);
-            
-            % RPC Subpixel fit
-            [tx_rpc(k, p), ty_rpc(k, p)] = subpixel(...
-                rpc_spatial, region_width, region_height, subpix_weights,...
-                1, 0, dp_static * [1, 1]);
+        % APC Subpixel fit
+        [tx_apc(k, p), ty_apc(k, p)] = subpixel(...
+            apc_spatial, region_width, region_height, subpix_weights,...
+            1, 0, [dp_equiv_x, dp_equiv_y]);
 
-            % SCC Subpixel fit
-            [tx_scc(k, p), ty_scc(k, p)] = subpixel(...
-                scc_spatial, region_width, region_height, subpix_weights,...
-                1, 0, dp_static * [1, 1]);
+        % RPC Subpixel fit
+        [tx_rpc(k, p), ty_rpc(k, p)] = subpixel(...
+            rpc_spatial, region_width, region_height, subpix_weights,...
+            1, 0, dp_static * [1, 1]);
 
-        end % End (parfor k = 1 : num_regions);
+        % SCC Subpixel fit
+        [tx_scc(k, p), ty_scc(k, p)] = subpixel(...
+            scc_spatial, region_width, region_height, subpix_weights,...
+            1, 0, dp_static * [1, 1]);
+
+    end % End (parfor k = 1 : num_regions);
+%     end
+
+%     surf(abs(spectral_correlation_array(:, :, k)));
+%     axis square
+%     xlim([1, region_width]);
+%     ylim([1, region_height]);
+%     drawnow;
+    
 
 end % End (for p = 1 : num_images)
 

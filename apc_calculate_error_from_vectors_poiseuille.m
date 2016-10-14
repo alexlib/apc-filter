@@ -20,6 +20,11 @@ yc = image_height / 2;
 % Radial coordinate in the height direction
 r = abs((gy - yc) / (image_height/2));
 
+% Number of points
+ny = length(unique(gy));
+nx = length(unique(gx));
+regions_per_pair = ny * nx;
+
 % True mean displacement along the velocity profile
 tx_true = - dx_max * (r.^2 - 1);
 ty_true = zeros(size(tx_true));
@@ -28,6 +33,10 @@ ty_true = zeros(size(tx_true));
 mean_err_scc = zeros(num_pairs, 1);
 mean_err_rpc = zeros(num_pairs, 1);
 mean_err_apc = zeros(num_pairs, 1);
+
+% Allocate arrays to hold the filters
+apc_sx = zeros(regions_per_pair, num_pairs);
+apc_sy = zeros(regions_per_pair, num_pairs);
 
 % Loop over the images
 for p = 1 : num_pairs
@@ -38,13 +47,16 @@ for p = 1 : num_pairs
     % Load the planes data
     load(vector_save_paths{p});
     
-    % Velocity components are fucking backwards
+    % Velocity components
     tx_scc = 1 * tx_pair_scc;
     ty_scc = 1 * ty_pair_scc;
     tx_rpc = 1 * tx_pair_rpc;
     ty_rpc = 1 * ty_pair_rpc;
     tx_apc = 1 * tx_pair_apc;
     ty_apc = 1 * ty_pair_apc;
+    
+    apc_sx(:, p) = apc_std_x_pair;
+    apc_sy(:, p) = apc_std_y_pair;
     
     % Absolute value of the error
     tx_err_scc = (tx_true - tx_scc);
@@ -70,6 +82,12 @@ end % End (for p = 1 : num_images)
 
 % End timer
 tf = toc(t);
+
+apc_sx_mean = mean(apc_sx, 1);
+apc_sy_mean = mean(apc_sy, 1);
+
+apc_sx_std = std(apc_sx, [], 1);
+apc_sy_std = std(apc_sy, [], 1);
 
 % Error bar plots
 c_red = 1 / 255 * [178,34,34];
