@@ -122,7 +122,6 @@ for p = 1 : num_images
     % and for some reason running the xa
     % first "region" loop in parallel
     % is slower than running it serially.
-%     if p == 50
     for k = 1 : num_regions
         % Inform the user
         fprintf(1, 'On image %d, APC fit %d of %d\n', p, k, num_regions);
@@ -140,11 +139,8 @@ for p = 1 : num_images
         % Fit a Gaussian function to the magnitude
         % of the complex correlation, 
         % which should represent the SNR versus wavenumber.
-%         [~, sy_apc, sx_apc] =...
-%             fit_gaussian_2D(abs(cc_spectral ./ max(abs(cc_spectral(:)))));
-
         [~, sy_apc, sx_apc] =...
-            fit_gaussian_2D(abs(cc_spectral));
+            fit_gaussian_2D(abs(cc_spectral ./ max(abs(cc_spectral(:)))));
         
         % APC filter
         apc_filt = exp(-x2 ./ (2 * sx_apc^2) - y2 ./ (2 * sy_apc^2));
@@ -176,15 +172,7 @@ for p = 1 : num_images
             scc_spatial, region_width, region_height, subpix_weights,...
             1, 0, dp_static * [1, 1]);
 
-    end % End (parfor k = 1 : num_regions);
-%     end
-
-%     surf(abs(spectral_correlation_array(:, :, k)));
-%     axis square
-%     xlim([1, region_width]);
-%     ylim([1, region_height]);
-%     drawnow;
-    
+    end % End (parfor k = 1 : num_regions);    
 
 end % End (for p = 1 : num_images)
 
