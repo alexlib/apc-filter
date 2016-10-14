@@ -39,12 +39,12 @@ for p = 1 : num_pairs
     load(vector_save_paths{p});
     
     % Velocity components are fucking backwards
-    tx_scc = -1 * tx_pair_scc;
-    ty_scc = -1 * ty_pair_scc;
-    tx_rpc = -1 * tx_pair_rpc;
-    ty_rpc = -1 * ty_pair_rpc;
-    tx_apc = -1 * tx_pair_apc;
-    ty_apc = -1 * ty_pair_apc;
+    tx_scc = 1 * tx_pair_scc;
+    ty_scc = 1 * ty_pair_scc;
+    tx_rpc = 1 * tx_pair_rpc;
+    ty_rpc = 1 * ty_pair_rpc;
+    tx_apc = 1 * tx_pair_apc;
+    ty_apc = 1 * ty_pair_apc;
     
     % Absolute value of the error
     tx_err_scc = (tx_true - tx_scc);
@@ -82,16 +82,16 @@ lw = 2;
 fSize = 16;
 
 figure;
-plot(mean_err_scc, '-', 'color', c_blue, 'linewidth', lw);
+semilogy(mean_err_scc, ':', 'color', c_blue, 'linewidth', lw);
 hold on
-plot(mean_err_rpc, '-', 'color', c_red, 'linewidth', lw);
-plot(mean_err_apc, '-', 'color', c_gray, 'linewidth', lw);
+plot(mean_err_rpc, ':', 'color', c_red, 'linewidth', lw);
+plot(mean_err_apc, ':', 'color', c_gray, 'linewidth', lw);
 hold off
 % ylim([0, 0.2]);
 xlim([0, 1000]);
 axis square
 % set(gca, 'ytick', 0 : 0.5 : max(ylim));
-set(gca, 'ytick', linspace(0, max(ylim), 5));
+% set(gca, 'ytick', linspace(0, max(ylim), 5));
 
 grid on
 box on

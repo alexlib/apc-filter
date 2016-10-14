@@ -15,7 +15,7 @@ fSize_title = 12;
 num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 1;
+num_regions_eq = 1000;
 num_regions_neq = 1;
 
 cc_abs_mad = zeros(num_regions_eq, 1);
@@ -23,8 +23,8 @@ cc_abs_mad = zeros(num_regions_eq, 1);
 % 
 
 % Image dimensions
-region_height = 128;
-region_width  = 128;
+region_height = 64;
+region_width  = 64;
 % % Grid step
 gx_range = 0;
 gx_step = 0;
@@ -46,8 +46,7 @@ y = (1 : region_height) - yc;
 gy_range = gx_range;
 gy_step = gx_step;
 
-% Random displacements
-s_rand = 3;
+
 
 %
 %
@@ -56,6 +55,13 @@ s_rand = 3;
 % Bulk displacements (std dev)
 sx_uniform_spread = region_width / 10;
 sy_uniform_spread = 0;
+
+sx_rand_ub = region_height / 10 / 2;
+sx_rand_lb = -1 * region_height / 10 / 2;
+
+sy_rand_ub = 0;
+sy_rand_lb = 0;
+
 %
 %
 x_dist = rectpuls(x, sx_uniform_spread);
@@ -63,8 +69,9 @@ y_dist = rectpuls(y, sy_uniform_spread);
 
 dx_dist = y_dist' * x_dist;
 
-sx_mean = 16;
+sx_mean = -5;
 sy_mean = 0;
+s_rand = 5;
 
 sx_lb = sx_uniform_spread/2;
 sx_ub = sx_uniform_spread/2;
@@ -101,12 +108,15 @@ d_mean = 3;
 particle_concentration = 2E-2;
 
 % Image noise
-noise_mean_fract = 5E-2;
-noise_std_fract  = 1.5E-1;
+noise_mean_fract = 2E-2;
+noise_std_fract  = 2E-2;
+% noise_mean_fract = 0;
+% noise_std_fract  = 0;
 
 % Particle positions buffer
 x_buffer = -16;
 y_buffer = -16;
+
 
 % % % % %
 
@@ -239,7 +249,7 @@ particle_shape_norm = real(particle_shape_sum ./ max(particle_shape_sum(:)));
 
 % Fit a Gaussian to this;
 % Fit the NCC
-[A, ~, ~, ~, ~, B, particle_shape_fit] = fit_gaussian_2D(particle_shape_norm);
+[A, ~, ~, B, particle_shape_fit] = fit_gaussian_2D(particle_shape_norm);
 
 % % This line works!!!!
 ncc_div = ncc_sum ./ particle_shape_sum;
@@ -285,25 +295,32 @@ for r = 1 : num_trials
     cc_full_sum = zeros(region_height, region_width) + ...
         1i * zeros(region_height, region_width);
     
+    scc_full_sum = zeros(region_height, region_width);
+    
     
     cc_abs_cur_new = zeros(region_height, region_width);
     
     cc_test = zeros(region_height, region_width);
 
 
-    
+  
 % Do the corresponding correlation
 for k = 1 : num_regions_eq
     
+    
     dx = sx_mean + sx_rand * randn(num_particles, 1);
     dy = sy_mean + sy_rand * randn(num_particles, 1);
+%     
+    
+%     dx = sx_mean + (sx_rand_ub - sx_rand_lb) * rand(num_particles,1) + sx_rand_lb;
+%     dy = sy_mean + (sy_rand_ub - sy_rand_lb) * rand(num_particles,1) + sy_rand_lb;
 
      % Particle positions (image 1)
     x_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
     y_01 = (y_max - y_min) * rand(num_particles, 1) + y_min;
     
     % Shearing
-%     dx = sx_bulk + sx_uniform_spread * (y_01 - yc) / (region_height/2);
+%     dx = sx_bulk + sx_uniform_spread * (y_01 - yc) / (region_height);
 %     dy = sy_bulk + zeros(size(dx));
     
         
@@ -328,6 +345,7 @@ for k = 1 : num_regions_eq
         randn(region_height + 2 * gx_range, region_width + 2 * gy_range);
     noise_mat_full_02 = noise_mean + noise_std * ...
         randn(region_height + 2 * gx_range, region_width + 2 * gy_range);
+    
         
     % Shake-the-box
     for p = 1 : length(GX(:))
@@ -367,6 +385,10 @@ for k = 1 : num_regions_eq
         % Cross correlation
         cc_cur = fftshift(F1_eq .* conj(F2_eq));
         
+        scc_cur = fftshift(abs(ifft2(fftshift(cc_cur))));
+        
+        scc_full_sum = scc_full_sum + scc_cur;
+        
         % Full CC sum
         cc_full_sum = cc_full_sum + cc_cur;
 
@@ -393,12 +415,15 @@ end
 cc_abs_sum_sqrt = sqrt(cc_abs_sum);
 cc_abs_full_sum_sqrt = sqrt(cc_abs_full_sum);
 
+phase_angle = angle(cc_full_sum);
+
+cc_ifft = fftshift(abs(ifft2(fftshift(cc_full_sum))));
 
 % Fit the NCC
-[A, sy, sx, YC, XC, B, ARRAY] = fit_gaussian_2D(cc_abs_sum_sqrt);
+[A, sy, sx, B, ARRAY] = fit_gaussian_2D(cc_abs_sum_sqrt);
 
 % Fit the particle shape
-[~, ~, ~, ~, ~, B_p, particle_shape_peak_fit] = fit_gaussian_2D(particle_shape_norm);
+[~, ~, ~, B_p, particle_shape_peak_fit] = fit_gaussian_2D(particle_shape_norm);
 
 p_n = particle_shape_norm - B_p;
 
@@ -431,7 +456,7 @@ apc_filt_norm_test = apc_filt_full_test ./ max(apc_filt_full_test(:));
 apc_filt_sub = apc_filt_full - min(apc_filt_full(:));
 apc_filt_norm = apc_filt_sub ./ max(apc_filt_sub(:));
 
-[~, ~, ~, ~, ~, apc_fit_offset, apc_fit_full] = fit_gaussian_2D(apc_filt_norm);
+[~, ~, ~, apc_fit_offset, apc_fit_full] = fit_gaussian_2D(apc_filt_norm);
 apc_fit_sub = apc_fit_full - min(apc_fit_full(:));
 apc_fit_norm = apc_fit_sub ./ max(apc_fit_sub(:));
 
@@ -442,115 +467,175 @@ v = [-34, 9];
 
 lw = 1E-5;
 
-figure(1);
-% Particle shape
-subplot(2, 2, 1);
-set(gca, 'camerapositionmode', 'manual');
-surf(particle_shape_norm ./ max(particle_shape_norm(:)), 'linewidth', lw);
-camproj(cam_proj);
-% surf(real(cc_sum) ./ max(real(cc_sum(:))));
-xlim([1, region_width]);
-ylim([1, region_height]);
-zlim(1.1 * [0, 1]);
-set(gca, 'view', v);
-axis square;
-axis vis3d
-box on;
+% subplot(1, 2, 1);
+% imagesc(phase_angle);
+% axis image;
+% axis off
+% 
+% subplot(1, 2, 2);
+% % surf(cc_ifft);
+% surf(scc_full_sum);
+% axis square
+% axis vis3d
+% axis off
+% xlim([1, region_width]);
+% ylim([1, region_height]);
 % set(gca, 'view', [0, 0]);
-set(gca, 'FontSize', fSize_axes);
-title(sprintf(...
-    '$A \\left(k \\right) \\, , \\overline{d_p} = %0.1f$', d_mean),...
-    'interpreter', 'latex', ...
-    'fontSize', fSize_title);
-set(gca, 'ztick', [0 : 0.25 : 1]);
-set(gca, 'xtick', [16, 32, 48, 64]);
-set(gca, 'ytick', [16, 32, 48, 64]);
-set(gca, 'xticklabel', {''})
-set(gca, 'yticklabel', {''})
-set(gca, 'zticklabel', {''})
-% xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
-% ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+% set(gca, 'units', 'normalized')
+% p = get(gca, 'position');
+% p(1) = 0.7 * p(1);
+% p(3) = 1.2 * p(3);
+% set(gca, 'position', p);
 
 
-subplot(2, 2, 2);
-% surf(cc_abs_shift ./ max(cc_abs_shift(:)), 'linewidth', lw);
-surf(cc_abs_sum_sqrt ./ max(cc_abs_sum_sqrt(:)), 'linewidth', lw);
-camproj(cam_proj);
+
+subplot(2, 1, 1);
+% surf(cc_ifft);
+surf(scc_full_sum);
+axis square
+axis vis3d
+axis off
 xlim([1, region_width]);
 ylim([1, region_height]);
-zlim(1.1 * [0, 1]);
-axis square;
-box on;
-set(gca, 'view', v);
-axis square;
-axis vis3d
-set(gca, 'FontSize', fSize_axes);
-title(sprintf(...
-    '$P_\\mu \\left(k\\right) \\,\\, , \\sigma_{\\Delta x} = %0.1f$', s_rand),...
-    'interpreter', 'latex', ...
-    'fontSize', fSize_title);
-set(gca, 'ztick', [0 : 0.25 : 1]);
-set(gca, 'xtick', [16, 32, 48, 64]);
-set(gca, 'ytick', [16, 32, 48, 64]);
-set(gca, 'xticklabel', {''})
-set(gca, 'yticklabel', {''})
-set(gca, 'zticklabel', {''})
 set(gca, 'view', [0, 0]);
-% xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
-% ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+set(gca, 'units', 'normalized')
+p = get(gca, 'position');
+p(2) = 0.78 * p(2);
+p(4) = 1.8 * p(4);
+set(gca, 'position', p);
+
+
+subplot(2, 1, 2);
+imagesc(phase_angle);
+axis image;
+axis off
+p = get(gca,'position');
+p(2) = 1.75 * p(2);
+set(gca, 'position', p);
+
+plot_path = sprintf('~/Desktop/corr_figs/fig_01.%02d.eps', s_rand);
+print(1, '-depsc', plot_path);
 
 
 
-subplot(2, 2, 3);
-% surf(apc_filt_norm, 'linewidth', lw);
-surf(apc_filt_norm_test, 'linewidth', lw);
-xlim([1, region_width]);
-ylim([1, region_height]);
-zlim([0, 1.1]);
-axis square;
-box on;
-set(gca, 'view', v);
-axis square;
-axis vis3d
-set(gca, 'view', v);
-set(gca, 'FontSize', fSize_axes);
-title('$A\left(k\right) P_\mu \left(k\right)$', 'interpreter', 'latex', ...
-    'FontSize', fSize_title);
-set(gca, 'ztick', [0 : 0.25 : 1]);
-set(gca, 'xtick', [16, 32, 48, 64]);
-set(gca, 'ytick', [16, 32, 48, 64]);
-set(gca, 'xticklabel', {''})
-set(gca, 'yticklabel', {''})
-set(gca, 'zticklabel', {''})
-% xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
-% ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
 
 
 
-subplot(2, 2, 4);
-surf(apc_fit_norm, 'linewidth', lw);
-xlim([1, region_width]);
-ylim([1, region_height]);
-zlim([0, 1.1]);
-axis square;
-box on;
-set(gca, 'view', v);
-axis square;
-axis vis3d
-set(gca, 'view', v);
-set(gca, 'FontSize', fSize_axes);
-title('$\textrm{Gaussian Fit to } A\left(k\right) P_\mu \left(k\right)$', 'interpreter', 'latex', ...
-    'FontSize', fSize_title);
-set(gca, 'ztick', [0 : 0.25 : 1]);
-set(gca, 'xtick', [16, 32, 48, 64]);
-set(gca, 'ytick', [16, 32, 48, 64]);
-set(gca, 'xticklabel', {''})
-set(gca, 'yticklabel', {''})
-set(gca, 'zticklabel', {''})
-% xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
-% ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
 
-colormap parula;
+
+% tightfig
+
+
+% 
+% figure(1);
+% % Particle shape
+% subplot(2, 2, 1);
+% set(gca, 'camerapositionmode', 'manual');
+% surf(particle_shape_norm ./ max(particle_shape_norm(:)), 'linewidth', lw);
+% camproj(cam_proj);
+% % surf(real(cc_sum) ./ max(real(cc_sum(:))));
+% xlim([1, region_width]);
+% ylim([1, region_height]);
+% zlim(1.1 * [0, 1]);
+% set(gca, 'view', v);
+% axis square;
+% axis vis3d
+% box on;
+% % set(gca, 'view', [0, 0]);
+% set(gca, 'FontSize', fSize_axes);
+% title(sprintf(...
+%     '$A \\left(k \\right) \\, , \\overline{d_p} = %0.1f$', d_mean),...
+%     'interpreter', 'latex', ...
+%     'fontSize', fSize_title);
+% set(gca, 'ztick', [0 : 0.25 : 1]);
+% set(gca, 'xtick', [16, 32, 48, 64]);
+% set(gca, 'ytick', [16, 32, 48, 64]);
+% set(gca, 'xticklabel', {''})
+% set(gca, 'yticklabel', {''})
+% set(gca, 'zticklabel', {''})
+% % xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+% % ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+% 
+% 
+% subplot(2, 2, 2);
+% % surf(cc_abs_shift ./ max(cc_abs_shift(:)), 'linewidth', lw);
+% surf(cc_abs_sum_sqrt ./ max(cc_abs_sum_sqrt(:)), 'linewidth', lw);
+% camproj(cam_proj);
+% xlim([1, region_width]);
+% ylim([1, region_height]);
+% zlim(1.1 * [0, 1]);
+% axis square;
+% box on;
+% set(gca, 'view', v);
+% axis square;
+% axis vis3d
+% set(gca, 'FontSize', fSize_axes);
+% title(sprintf(...
+%     '$P_\\mu \\left(k\\right) \\,\\, , \\sigma_{\\Delta x} = %0.1f$', s_rand),...
+%     'interpreter', 'latex', ...
+%     'fontSize', fSize_title);
+% set(gca, 'ztick', [0 : 0.25 : 1]);
+% set(gca, 'xtick', [16, 32, 48, 64]);
+% set(gca, 'ytick', [16, 32, 48, 64]);
+% set(gca, 'xticklabel', {''})
+% set(gca, 'yticklabel', {''})
+% set(gca, 'zticklabel', {''})
+% set(gca, 'view', [0, 0]);
+% % xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+% % ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+% 
+% 
+% 
+% subplot(2, 2, 3);
+% % surf(apc_filt_norm, 'linewidth', lw);
+% surf(apc_filt_norm_test, 'linewidth', lw);
+% xlim([1, region_width]);
+% ylim([1, region_height]);
+% zlim([0, 1.1]);
+% axis square;
+% box on;
+% set(gca, 'view', v);
+% axis square;
+% axis vis3d
+% set(gca, 'view', v);
+% set(gca, 'FontSize', fSize_axes);
+% title('$A\left(k\right) P_\mu \left(k\right)$', 'interpreter', 'latex', ...
+%     'FontSize', fSize_title);
+% set(gca, 'ztick', [0 : 0.25 : 1]);
+% set(gca, 'xtick', [16, 32, 48, 64]);
+% set(gca, 'ytick', [16, 32, 48, 64]);
+% set(gca, 'xticklabel', {''})
+% set(gca, 'yticklabel', {''})
+% set(gca, 'zticklabel', {''})
+% % xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+% % ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+% 
+% 
+% 
+% subplot(2, 2, 4);
+% surf(apc_fit_norm, 'linewidth', lw);
+% xlim([1, region_width]);
+% ylim([1, region_height]);
+% zlim([0, 1.1]);
+% axis square;
+% box on;
+% set(gca, 'view', v);
+% axis square;
+% axis vis3d
+% set(gca, 'view', v);
+% set(gca, 'FontSize', fSize_axes);
+% title('$\textrm{Gaussian Fit to } A\left(k\right) P_\mu \left(k\right)$', 'interpreter', 'latex', ...
+%     'FontSize', fSize_title);
+% set(gca, 'ztick', [0 : 0.25 : 1]);
+% set(gca, 'xtick', [16, 32, 48, 64]);
+% set(gca, 'ytick', [16, 32, 48, 64]);
+% set(gca, 'xticklabel', {''})
+% set(gca, 'yticklabel', {''})
+% set(gca, 'zticklabel', {''})
+% % xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+% % ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
+% 
+% colormap parula;
 
 
 % 

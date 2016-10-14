@@ -5,12 +5,7 @@ region_width  = 128;
 region_height = 128 ;
 
 % Decide where the image repo is
-if ismac
-    img_repo = '~/Desktop/piv_test_images';
-%       img_repo = '/Volumes/aether_b/piv_test_images/';
-elseif islinux
-    img_repo = '/home/shannon/b/aether/piv_test_images';
-end
+img_repo = get_image_repo();
 
 % Diffusion standard deviation
 diffusion_std = 1;
@@ -49,7 +44,9 @@ JobFile.Parameters.Processing.Grid.Spacing.Y = 64;
 JobFile.Parameters.Processing.Grid.Buffer.X = round(region_width  /2) * [1, 1];
 JobFile.Parameters.Processing.Grid.Buffer.Y = round(region_height /2) * [1, 1];
 
-JobFile.JobOptions.DoCorrelations = false;
+JobFile.Parameters.Processing.RpcDiameter = 3;
+
+JobFile.JobOptions.DoCorrelations = true;
 JobFile.JobOptions.CalculateDisplacements = true;
 JobFile.JobOptions.CalculateError = false;
 
