@@ -467,12 +467,14 @@ v = [-34, 9];
 
 lw = 1E-5;
 
-% subplot(1, 2, 1);
-% imagesc(phase_angle);
-% axis image;
-% axis off
-% 
-% subplot(1, 2, 2);
+
+
+
+
+
+% % This is for making the SCC ensemble
+% % versus phase angle plots
+% subplot(2, 1, 1);
 % % surf(cc_ifft);
 % surf(scc_full_sum);
 % axis square
@@ -483,255 +485,21 @@ lw = 1E-5;
 % set(gca, 'view', [0, 0]);
 % set(gca, 'units', 'normalized')
 % p = get(gca, 'position');
-% p(1) = 0.7 * p(1);
-% p(3) = 1.2 * p(3);
+% p(2) = 0.78 * p(2);
+% p(4) = 1.8 * p(4);
 % set(gca, 'position', p);
-
-
-
-subplot(2, 1, 1);
-% surf(cc_ifft);
-surf(scc_full_sum);
-axis square
-axis vis3d
-axis off
-xlim([1, region_width]);
-ylim([1, region_height]);
-set(gca, 'view', [0, 0]);
-set(gca, 'units', 'normalized')
-p = get(gca, 'position');
-p(2) = 0.78 * p(2);
-p(4) = 1.8 * p(4);
-set(gca, 'position', p);
-
-
-subplot(2, 1, 2);
-imagesc(phase_angle);
-axis image;
-axis off
-p = get(gca,'position');
-p(2) = 1.75 * p(2);
-set(gca, 'position', p);
-
-plot_path = sprintf('~/Desktop/corr_figs/fig_01.%02d.eps', s_rand);
-print(1, '-depsc', plot_path);
-
-
-
-
-
-
-
-
-% tightfig
-
-
+% % %
+% subplot(2, 1, 2);
+% imagesc(phase_angle);
+% axis image;
+% axis off
+% p = get(gca,'position');
+% p(2) = 1.75 * p(2);
+% set(gca, 'position', p);
+% % % % 
+% % % % plot_path = sprintf('~/Desktop/corr_figs/fig_01.%02d.eps', s_rand);
+% % % % print(1, '-depsc', plot_path);
 % 
-% figure(1);
-% % Particle shape
-% subplot(2, 2, 1);
-% set(gca, 'camerapositionmode', 'manual');
-% surf(particle_shape_norm ./ max(particle_shape_norm(:)), 'linewidth', lw);
-% camproj(cam_proj);
-% % surf(real(cc_sum) ./ max(real(cc_sum(:))));
-% xlim([1, region_width]);
-% ylim([1, region_height]);
-% zlim(1.1 * [0, 1]);
-% set(gca, 'view', v);
-% axis square;
-% axis vis3d
-% box on;
-% % set(gca, 'view', [0, 0]);
-% set(gca, 'FontSize', fSize_axes);
-% title(sprintf(...
-%     '$A \\left(k \\right) \\, , \\overline{d_p} = %0.1f$', d_mean),...
-%     'interpreter', 'latex', ...
-%     'fontSize', fSize_title);
-% set(gca, 'ztick', [0 : 0.25 : 1]);
-% set(gca, 'xtick', [16, 32, 48, 64]);
-% set(gca, 'ytick', [16, 32, 48, 64]);
-% set(gca, 'xticklabel', {''})
-% set(gca, 'yticklabel', {''})
-% set(gca, 'zticklabel', {''})
-% % xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
-% % ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
-% 
-% 
-% subplot(2, 2, 2);
-% % surf(cc_abs_shift ./ max(cc_abs_shift(:)), 'linewidth', lw);
-% surf(cc_abs_sum_sqrt ./ max(cc_abs_sum_sqrt(:)), 'linewidth', lw);
-% camproj(cam_proj);
-% xlim([1, region_width]);
-% ylim([1, region_height]);
-% zlim(1.1 * [0, 1]);
-% axis square;
-% box on;
-% set(gca, 'view', v);
-% axis square;
-% axis vis3d
-% set(gca, 'FontSize', fSize_axes);
-% title(sprintf(...
-%     '$P_\\mu \\left(k\\right) \\,\\, , \\sigma_{\\Delta x} = %0.1f$', s_rand),...
-%     'interpreter', 'latex', ...
-%     'fontSize', fSize_title);
-% set(gca, 'ztick', [0 : 0.25 : 1]);
-% set(gca, 'xtick', [16, 32, 48, 64]);
-% set(gca, 'ytick', [16, 32, 48, 64]);
-% set(gca, 'xticklabel', {''})
-% set(gca, 'yticklabel', {''})
-% set(gca, 'zticklabel', {''})
-% set(gca, 'view', [0, 0]);
-% % xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
-% % ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
-% 
-% 
-% 
-% subplot(2, 2, 3);
-% % surf(apc_filt_norm, 'linewidth', lw);
-% surf(apc_filt_norm_test, 'linewidth', lw);
-% xlim([1, region_width]);
-% ylim([1, region_height]);
-% zlim([0, 1.1]);
-% axis square;
-% box on;
-% set(gca, 'view', v);
-% axis square;
-% axis vis3d
-% set(gca, 'view', v);
-% set(gca, 'FontSize', fSize_axes);
-% title('$A\left(k\right) P_\mu \left(k\right)$', 'interpreter', 'latex', ...
-%     'FontSize', fSize_title);
-% set(gca, 'ztick', [0 : 0.25 : 1]);
-% set(gca, 'xtick', [16, 32, 48, 64]);
-% set(gca, 'ytick', [16, 32, 48, 64]);
-% set(gca, 'xticklabel', {''})
-% set(gca, 'yticklabel', {''})
-% set(gca, 'zticklabel', {''})
-% % xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
-% % ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
-% 
-% 
-% 
-% subplot(2, 2, 4);
-% surf(apc_fit_norm, 'linewidth', lw);
-% xlim([1, region_width]);
-% ylim([1, region_height]);
-% zlim([0, 1.1]);
-% axis square;
-% box on;
-% set(gca, 'view', v);
-% axis square;
-% axis vis3d
-% set(gca, 'view', v);
-% set(gca, 'FontSize', fSize_axes);
-% title('$\textrm{Gaussian Fit to } A\left(k\right) P_\mu \left(k\right)$', 'interpreter', 'latex', ...
-%     'FontSize', fSize_title);
-% set(gca, 'ztick', [0 : 0.25 : 1]);
-% set(gca, 'xtick', [16, 32, 48, 64]);
-% set(gca, 'ytick', [16, 32, 48, 64]);
-% set(gca, 'xticklabel', {''})
-% set(gca, 'yticklabel', {''})
-% set(gca, 'zticklabel', {''})
-% % xlabel('$k / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
-% % ylabel('$m / \pi$', 'interpreter', 'latex', 'FontSize', fSize_axes);
-% 
-% colormap parula;
-
-
-% 
-% figure(2);
-% subplot(1, 3, 1);
-% surf(apc_fit_norm, 'linewidth', lw);
-% xlim([1, region_width]);
-% ylim([1, region_height]);
-% zlim([0, 1.1]);
-% axis square;
-% box on;
-% set(gca, 'view', v);
-% axis square;
-% axis vis3d
-% set(gca, 'view', v);
-% set(gca, 'FontSize', fSize_axes);
-% title(sprintf('$\\textrm{APC} \\left(k\\right) , \\,\\, \\overline{d_p} = %0.1f , \\, \\sigma_{\\Delta x} = %0.1f$', d_mean, s_rand), 'interpreter', 'latex', ...
-%     'FontSize', ft);
-% set(gca, 'ztick', [0 : 0.25 : 1]);
-% set(gca, 'xtick', [16, 32, 48, 64]);
-% set(gca, 'ytick', [16, 32, 48, 64]);
-% set(gca, 'xticklabel', {''})
-% set(gca, 'yticklabel', {''})
-% set(gca, 'zticklabel', {''})
-% 
-% subplot(1, 3, 2);
-% R = spectralEnergyFilter(region_height, region_width, d_mean);
-% surf(R ./ max(R(:)), 'linewidth', lw);
-% xlim([1, region_width]);
-% ylim([1, region_height]);
-% zlim([0, 1.1]);
-% axis square;
-% box on;
-% set(gca, 'view', v);
-% axis square;
-% axis vis3d
-% set(gca, 'view', v);
-% set(gca, 'FontSize', fSize_axes);
-% title(sprintf('$\\textrm{Analytical RPC Filter, } \\, \\, \\overline{d_p} = %0.1f$', d_mean), 'interpreter', 'latex', ...
-%     'FontSize', ft);
-% set(gca, 'ztick', [0 : 0.25 : 1]);
-% set(gca, 'xtick', [16, 32, 48, 64]);
-% set(gca, 'ytick', [16, 32, 48, 64]);
-% set(gca, 'xticklabel', {''})
-% set(gca, 'yticklabel', {''})
-% set(gca, 'zticklabel', {''})
-% 
-% a = abs((R ./ max(R(:)) - apc_fit_norm));
-% subplot(1, 3, 3);
-% surf(a)
-% xlim([1, region_width]);
-% ylim([1, region_height]);
-% % zlim([0, 1.1]);
-% axis square;
-% box on;
-% set(gca, 'view', v);
-% axis square;
-% axis vis3d
-% set(gca, 'view', v);
-% set(gca, 'FontSize', fSize_axes);
-% title('$ \vert \mathrm{APC}\left(k\right) - \mathrm{RPC} \left(k\right) \vert$', 'interpreter', 'latex', ...
-%     'FontSize', ft);
-% set(gca, 'xtick', [16, 32, 48, 64]);
-% set(gca, 'ytick', [16, 32, 48, 64]);
-% set(gca, 'xticklabel', {''})
-% set(gca, 'yticklabel', {''})
-% zl = zlim;
-% 
-% z_tick = linspace(0, max(zl), 5);
-% set(gca, 'ztick', z_tick);
-% zlim([0, 1.1 * max(z_tick)]);
-% 
-% % set(gca, 'zticklabel', {''})
-% 
-% 
-
-
-
-
-
-plot_dir = '~/Desktop/apc_plots/quads';
-
-file_name = sprintf('apc_full_filt_h%d_w%d_sr_%0.1f.png', ...
-    region_height, region_width, s_rand);
-file_path = fullfile(plot_dir, file_name);
-
-% 
-% do_print = input('Print? [y/N]\n', 's');
-% switch lower(do_print)
-%     case 'y'
-%         print(1, '-dpng', '-r300', file_path);
-%     otherwise
-% end
-% 
-%         
-
 
 
 

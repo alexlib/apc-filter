@@ -45,12 +45,17 @@ ty_apc = zeros(regions_per_pair, num_pairs);
 tx_apc = zeros(regions_per_pair, num_pairs);
 
 % Allocate RPC displacements
-ty_rpc = zeros(regions_per_pair, num_pairs);
-tx_rpc = zeros(regions_per_pair, num_pairs);
+ty_rpc_spatial = zeros(regions_per_pair, num_pairs);
+tx_rpc_spatial = zeros(regions_per_pair, num_pairs);
+ty_rpc_spectral = zeros(regions_per_pair, num_pairs);
+tx_rpc_spectral = zeros(regions_per_pair, num_pairs);
+
 
 % Allocate SCC displacements
-ty_scc = zeros(regions_per_pair, num_pairs);
-tx_scc = zeros(regions_per_pair, num_pairs);
+ty_scc_spatial = zeros(regions_per_pair, num_pairs);
+tx_scc_spatial = zeros(regions_per_pair, num_pairs);
+ty_scc_spectral = zeros(regions_per_pair, num_pairs);
+tx_scc_spectral = zeros(regions_per_pair, num_pairs);
 
 % Make the interrogation region coordinate vectors
 xv2 = ((1 : region_width) - fourier_zero(region_width)).^2;
@@ -145,6 +150,14 @@ for p = 1 : num_pairs
         % Filter the spectral correlation and invert it
         apc_spatial = fftshift(abs(ifft2(fftshift(...
             phaseOnlyFilter(cc_spectral) .* apc_filt))));
+        
+        % SCC spectral ensemble
+        scc_spectral_ensemble_spatial = fftshift(...
+            abs(ifft2(fftshift(cc_spectral))));
+        
+        % RPC spectral ensemble
+        rpc_spectral_ensemble_spatial = fftshift(abs(ifft2(fftshift(...
+            phaseOnlyFilter(cc_spectral) .* rpc_filter))));
 
         % APC Subpixel fit
         [tx_apc(k, p), ty_apc(k, p)] = subpixel(...
@@ -152,23 +165,37 @@ for p = 1 : num_pairs
             1, 0, [dp_equiv_x, dp_equiv_y]);
 
         % RPC Subpixel fit
-        [tx_rpc(k, p), ty_rpc(k, p)] = subpixel(...
-            rpc_spatial, region_width, region_height, subpix_weights,...
+        [tx_rpc_spectral(k, p), ty_rpc_spectral(k, p)] = subpixel(...
+            rpc_spectral_ensemble_spatial, region_width, region_height, subpix_weights,...
+            1, 0, rpc_diameter * [1, 1]);
+        
+        % RPC Subpixel fit
+        [tx_scc_spectral(k, p), ty_scc_spectral(k, p)] = subpixel(...
+            scc_spectral_ensemble_spatial, region_width, region_height, subpix_weights,...
             1, 0, rpc_diameter * [1, 1]);
 
+         % RPC Subpixel fit
+        [tx_rpc_spatial(k, p), ty_rpc_spatial(k, p)] = subpixel(...
+            rpc_spatial, region_width, region_height, subpix_weights,...
+            1, 0, rpc_diameter * [1, 1]);
+        
         % SCC Subpixel fit
-        [tx_scc(k, p), ty_scc(k, p)] = subpixel(...
+        [tx_scc_spatial(k, p), ty_scc_spatial(k, p)] = subpixel(...
             scc_spatial, region_width, region_height, subpix_weights,...
             1, 0, rpc_diameter * [1, 1]);
 
     end % End (parfor k = 1 : num_regions);
     
     % Extract the data for this pair
-    tx_pair_scc = tx_scc(:, p);
-    ty_pair_scc = ty_scc(:, p);
+    tx_pair_scc_spatial = tx_scc_spatial(:, p);
+    ty_pair_scc_spatial = ty_scc_spatial(:, p);
+    tx_pair_rpc_spatial = tx_rpc_spatial(:, p);
+    ty_pair_rpc_spatial = ty_rpc_spatial(:, p);
     
-    tx_pair_rpc = tx_rpc(:, p);
-    ty_pair_rpc = ty_rpc(:, p);
+    tx_pair_scc_spectral = tx_scc_spectral(:, p);
+    ty_pair_scc_spectral = ty_scc_spectral(:, p);
+    tx_pair_rpc_spectral = tx_rpc_spectral(:, p);
+    ty_pair_rpc_spectral = ty_rpc_spectral(:, p);
     
     tx_pair_apc = tx_apc(:, p);
     ty_pair_apc = ty_apc(:, p);
@@ -178,19 +205,14 @@ for p = 1 : num_pairs
     
     % Save the data for this pair
     save(vector_save_path_list{p}, ...
-        'tx_pair_scc', 'ty_pair_scc', ...
-        'tx_pair_rpc', 'ty_pair_rpc', ...
+        'tx_pair_scc_spatial', 'ty_pair_scc_spatial', ...
+        'tx_pair_rpc_spatial', 'ty_pair_rpc_spatial', ...
+        'tx_pair_scc_spectral', 'ty_pair_scc_spectral', ...
+        'tx_pair_rpc_spectral', 'ty_pair_rpc_spectral', ...
         'tx_pair_apc', 'ty_pair_apc', ...
         'apc_std_x_pair', 'apc_std_y_pair', ...
         'gx', 'gy');
     
-%     % Make a plot
-%     apc_quiver_plots(tx_apc(:, p), ty_apc(:, p), ...
-%         tx_rpc(:, p), ty_rpc(:, p), ...
-%         tx_scc(:, p), ty_scc(:, p), ...
-%         gx, gy, [2048, 2048], 10);
-%     drawnow;
-
 end % End (for p = 1 : num_images)
 
 % End timer

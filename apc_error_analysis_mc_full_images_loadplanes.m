@@ -32,6 +32,9 @@ for n = 1 : num_jobs
     
     % Vector save directory
     vector_dir = fullfile(image_dir, '..', 'vect');
+    
+    % Results save directory
+    error_dir = fullfile(image_dir, '..', 'error');
 
     c_step = JobFile.Parameters.Processing.CorrelationStep;
     region_width = JobFile.Parameters.Processing.RegionWidth;
@@ -83,6 +86,11 @@ for n = 1 : num_jobs
     if ~exist(vector_dir, 'dir')
         mkdir(vector_dir);
     end
+    
+    % Make the directory for the results if it doesn't exist
+    if ~exist(error_dir, 'dir')
+        mkdir(error_dir);
+    end
 
     % Form the image path lists
     for k = 1 : num_pairs
@@ -112,65 +120,32 @@ for n = 1 : num_jobs
     
     end
     
+    % Results file path
+    error_save_name = sprintf(...
+        'poiseuille_error_h%d_w%d_diff_std_%0.2f_%06d_%06d.mat', ...
+            region_height, region_width, ...
+            diffusion_std_dev, ...
+            start_image, end_image);
+        
+        % results file path
+        results_save_path = fullfile(error_dir, error_save_name);
+    
         % Calculate errors?
     if calculate_error
         apc_calculate_error_from_vectors_poiseuille(...
-            vector_save_paths, image_size, tx_max_true);
+            vector_save_paths, ...
+            image_size, ...
+            tx_max_true, ...
+            diffusion_std_dev, ...
+            results_save_path);
     end
     
+    results_save_paths{n} = results_save_path;
     
-  
-% 
-%     % Load the first image and get its size
-%     [image_height, image_width] = size(double(imread(image_list_01{1})));
-% 
-%     % Save image size to vector
-%     image_size = [image_height, image_width];
-% 
-% 
-% 
-%     % Number of grid points in each direction
-%     nx = length(unique(grid_x(:)));
-%     ny = length(unique(grid_y(:)));
-% 
-%     % Do the correlation error analysis
-%     [ty_apc, tx_apc, ...
-%         ty_rpc, tx_rpc, ...
-%         ty_scc, tx_scc, ...
-%         apc_std_y, apc_std_x] = apc_error_analysis_ensemble(...
-%         image_list_01, image_list_02, grid_y, grid_x, region_size, ...
-%         window_fraction, rpc_diameter);
-% 
-%     gx_mat = reshape(grid_x, [ny, nx]);
-%     gy_mat = reshape(grid_y, [ny, nx]);
-% 
-%     tx_apc_mat = -1 * reshape(tx_apc, [ny, nx, num_pairs]);
-%     ty_apc_mat = -1 * reshape(ty_apc, [ny, nx, num_pairs]);
-% 
-%     tx_rpc_mat = -1 * reshape(tx_rpc, [ny, nx, num_pairs]);
-%     ty_rpc_mat = -1 * reshape(ty_rpc, [ny, nx, num_pairs]);
-% 
-%     tx_scc_mat = -1 * reshape(tx_scc, [ny, nx, num_pairs]);
-%     ty_scc_mat = -1 * reshape(ty_scc, [ny, nx, num_pairs]);
-% 
-%     apc_std_x_mat =  reshape(apc_std_x, [ny, nx, num_pairs]);
-%     apc_std_y_mat =  reshape(apc_std_y, [ny, nx, num_pairs]);
-% 
-%     apc_std_x_vect = reshape(apc_std_x_mat(:, :, end), [ny * nx, 1]);
-% 
-% 
-%     % Save results
-%     save(results_path, ...
-%         'solution_file', 'JobFile', ...
-%         'tx_apc_mat', 'ty_apc_mat', ...
-%         'tx_rpc_mat', 'ty_rpc_mat', ...
-%         'tx_scc_mat', 'ty_scc_mat', ...
-%         'apc_std_x_mat', 'apc_std_y_mat', ...
-%         'gx_mat', 'gy_mat');
-% 
-%     fprintf(1, 'Saved results to %s\n', results_path);
-
 end
+
+% Make a plot
+plot_apc_error_analysis_results(results_save_paths);
 
 end
 

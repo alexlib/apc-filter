@@ -155,7 +155,7 @@ end % End (for p = 1 : num_images)
 
 
 % Do the Gaussian fitting
-for k = 1 : num_regions
+parfor k = 1 : num_regions
 
     % Create the Gaussian fitlers
     apc_filt = exp(-(x.^2)./ (2 * apc_std_x(k)^2)) .* ...
