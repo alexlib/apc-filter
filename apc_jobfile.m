@@ -49,8 +49,8 @@ JobFile.Parameters.Processing.RpcDiameter = 3;
 JobFile.JobOptions.LoadFilters = true;
 
 JobFile.JobOptions.DoCorrelations = false;
-JobFile.JobOptions.CalculateDisplacements = false;
-JobFile.JobOptions.CalculateError = true;
+JobFile.JobOptions.CalculateDisplacements = true;
+JobFile.JobOptions.CalculateError = false;
 
 
 JOB_LIST(1) = JobFile;

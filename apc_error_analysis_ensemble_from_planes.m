@@ -102,6 +102,11 @@ for p = 1 : num_pairs
         if exist(vector_save_path_list{p}, 'file')
             load(vector_save_path_list{p});
             loaded_filters = true;
+        else
+            % Just declare these so that
+            % the parfor loop will run.
+            apc_std_x_pair = [];
+            apc_std_y_pair = [];
         end
         
     end
@@ -114,9 +119,7 @@ for p = 1 : num_pairs
     % is slower than running it serially.  
     parfor k = 1 : regions_per_pair
         
-        % Inform the user
-        fprintf(1, 'Image %d of %d, APC fit %d of %d\n', p, num_pairs, k, regions_per_pair);
-
+       
         % Extract the data we need
         %
         % Spatial planes
@@ -132,6 +135,9 @@ for p = 1 : num_pairs
             sy_apc = apc_std_y_pair(k);
         else
         
+             % Inform the user
+            fprintf(1, 'Image %d of %d, APC fit %d of %d\n', p, num_pairs, k, regions_per_pair);
+
             % Fit to the correlation magnitude
             [~, sy_fit, sx_fit] =...
                 fit_gaussian_2D(abs(cc_spectral) ./ max(abs(cc_spectral(:))));

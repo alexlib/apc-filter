@@ -14,7 +14,7 @@ num_jobs = length(JobList);
 
 % dx_rand_list = [1, 3, 5];
 dx_rand_list = 3;
-num_pairs = 1000;
+num_pairs = 100;
 image_size = [2048, 2048];
 
 % Decide where the image repo is
@@ -56,7 +56,7 @@ img_repo = get_image_repo();
 %     % Update the jobfile
 %     JobList(n).Images.Start = start_image_current;
 %     JobList(n).Images.End = end_image_current;
-%     
+%     piv_test
 % end
 
 % Only run if the job is within scope
