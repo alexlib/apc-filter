@@ -2,7 +2,7 @@ function [ty_apc, tx_apc, ...
     ty_rpc, tx_rpc, ...
     ty_scc, tx_scc, ...
     apc_std_y, apc_std_x] = apc_error_analysis_ensemble_from_planes(...
-    planes_path_list, vector_save_path_list, rpc_diameter)
+    planes_path_list, vector_save_path_list, rpc_diameter, load_filter_fit)
 
 % This is the number of images that were correlated
 num_pairs = length(planes_path_list);
@@ -50,7 +50,6 @@ tx_rpc_spatial = zeros(regions_per_pair, num_pairs);
 ty_rpc_spectral = zeros(regions_per_pair, num_pairs);
 tx_rpc_spectral = zeros(regions_per_pair, num_pairs);
 
-
 % Allocate SCC displacements
 ty_scc_spatial = zeros(regions_per_pair, num_pairs);
 tx_scc_spatial = zeros(regions_per_pair, num_pairs);
@@ -77,7 +76,7 @@ for p = 1 : num_pairs
 
     % Load the planes data
     load(planes_path_list{p});
-    
+        
     % Add the spectral correlation to the ensemble
     complex_cc_ensemble = complex_cc_ensemble + spectral_correlation_array;
 
@@ -95,6 +94,18 @@ for p = 1 : num_pairs
          
     end % End (for k = 1 : num_regions)
 
+    % Flag for loaded filters
+    loaded_filters = false;
+    
+    % Load the vectors if requested
+    if load_filter_fit
+        if exist(vector_save_path_list{p}, 'file')
+            load(vector_save_path_list{p});
+            loaded_filters = true;
+        end
+        
+    end
+    
     % Do the peak fitting and APC filtering
     % This is separated from the first loop
     % so that it can be run in parallel,
@@ -115,26 +126,34 @@ for p = 1 : num_pairs
         % Spectral Planes
         cc_spectral = complex_cc_ensemble(:, :, k);
         
-        % Fit to the correlation magnitude
-        [~, sy_fit, sx_fit] =...
-            fit_gaussian_2D(abs(cc_spectral) ./ max(abs(cc_spectral(:))));
+        % Skip the fit if requested
+        if loaded_filters
+            sx_apc = apc_std_x_pair(k);
+            sy_apc = apc_std_y_pair(k);
+        else
         
-        % The fit can crap out and come back with
-        % a standard deviation of less than 1. This is nonphysical
-        % and can be used as a flag.
-        if sx_fit <= 1
-            sx_fit = rpc_std_dev;
-        end
-        if sy_fit <= 1
-            sy_fit = rpc_std_dev;
-        end
+            % Fit to the correlation magnitude
+            [~, sy_fit, sx_fit] =...
+                fit_gaussian_2D(abs(cc_spectral) ./ max(abs(cc_spectral(:))));
+
+            % The fit can crap out and come back with
+            % a standard deviation of less than 1. This is nonphysical
+            % and can be used as a flag.        
+            if sx_fit <= 1
+                sx_fit = rpc_std_dev;
+            end
+            if sy_fit <= 1
+                sy_fit = rpc_std_dev;
+            end
         
-        % Pick the minimum between the calculated
-        % APC diameter and the analytical RPC diameter.
-        % In other words, set the RPC diameter 
-        % as the upper bound to the filter size.
-        sx_apc = min(sx_fit, rpc_std_dev);
-        sy_apc = min(sy_fit, rpc_std_dev);
+            % Pick the minimum between the calculated
+            % APC diameter and the analytical RPC diameter.
+            % In other words, set the RPC diameter 
+            % as the upper bound to the filter size.
+            sx_apc = min(sx_fit, rpc_std_dev);
+            sy_apc = min(sy_fit, rpc_std_dev);
+
+        end
 
         % APC filter
         apc_filt = exp(-x2 ./ (2 * sx_apc^2) - y2 ./ (2 * sy_apc^2));

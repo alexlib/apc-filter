@@ -46,6 +46,8 @@ JobFile.Parameters.Processing.Grid.Buffer.Y = round(region_height /2) * [1, 1];
 
 JobFile.Parameters.Processing.RpcDiameter = 3;
 
+JobFile.JobOptions.LoadFilters = true;
+
 JobFile.JobOptions.DoCorrelations = false;
 JobFile.JobOptions.CalculateDisplacements = false;
 JobFile.JobOptions.CalculateError = true;

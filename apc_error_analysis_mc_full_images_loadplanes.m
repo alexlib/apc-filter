@@ -23,6 +23,7 @@ for n = 1 : num_jobs
     skip_image = JobFile.Images.Skip;
     img_trailer_01 = JobFile.Images.Trailer_01;
     img_trailer_02 = JobFile.Images.Trailer_02;
+    load_filters = JobFile.JobOptions.LoadFilters;
     
     calculate_error = JobFile.JobOptions.CalculateError;
     calculate_displacements = JobFile.JobOptions.CalculateDisplacements;
@@ -116,7 +117,7 @@ for n = 1 : num_jobs
         % Do the displacement measurements
         apc_error_analysis_ensemble_from_planes(...
         plane_save_paths, ...
-        vector_save_paths, rpc_diameter);
+        vector_save_paths, rpc_diameter, load_filters);
     
     end
     
