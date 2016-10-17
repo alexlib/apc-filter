@@ -146,7 +146,7 @@ for n = 1 : num_jobs
 end
 
 % Make a plot
-plot_apc_error_analysis_results(results_save_paths);
+plot_apc_error_analysis_results_with_spectral(results_save_paths);
 
 end
 

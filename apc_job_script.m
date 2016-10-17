@@ -12,8 +12,8 @@ JobList = apc_jobfile;
 % Number of jobs
 num_jobs = length(JobList);
 
-% dx_rand_list = [1, 3, 5];
-dx_rand_list = 3;
+dx_rand_list = [1, 3, 5];
+% dx_rand_list = 3;
 num_pairs = 100;
 image_size = [2048, 2048];
 
@@ -75,6 +75,7 @@ if S <= num_jobs
 %     % Displacement estimate.
     if do_fit
         apc_error_analysis_mc_full_images_loadplanes(JobList(S));
+%         apc_error_analysis_mc_full_images(JobList(S));
     end
 
 end

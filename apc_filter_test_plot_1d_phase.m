@@ -1,14 +1,16 @@
 % addpaths;
 
 
-fSize_axes = 9;
-fSize_title = 12;
+fSize_axes = 20;
+fSize_title = 30;
+fSize_labels = 30;
+fSize_legend = 16;
 
 sx_mean = 8;
 sy_mean = 0;
 sz_mean = 0;
 
-diffusion_list = 2;
+diffusion_list = [0, 2, 5];
 
 % diffusion_list = 0;
 
@@ -18,17 +20,14 @@ num_trials = 1;
 
 % Number of corresponding regions
 num_regions_eq = 1000;
-num_regions_neq = 1;
-% 
-
 
 % Image dimensions
 region_height = 128;
 region_width  = 128;
+
 % % Grid step
 gx_range = 0;
 gx_step = 0;
-
 
 % Center pixels
 xc = fourier_zero(region_width);
@@ -59,7 +58,7 @@ particle_concentration = 2E-2;
 
 % Image noise
 noise_mean_fract = 0E-2;
-noise_std_fract  = 0.15;
+noise_std_fract  = 5E-2;
 % noise_mean_fract = 0;
 % noise_std_fract  = 0;
 
@@ -108,10 +107,48 @@ z_min = -1 * sheet_thickness_pixels / 2;
 z_max =      sheet_thickness_pixels / 2;
 
 % Line width
-lw = 1E-5;
+lw = 3;
+
+xt = linspace(1, region_width, 11);
+xtl = cell(11, 1);
+xtl{1} = '-1';
+xtl{end} = '1';
+xtl{6} = '0';
+
+ax_fract = 1;
+dy_subplot = 20;
+dx_subplot = 40;
+height_fract = 2;
+
+close all;
+f = figure;
+f_pos = [-1244         497         972         694];
+set(f, 'position', f_pos);
+
 
 for n = 1 : num_diffusions
     
+    P1 = sub2ind([num_diffusions, 2], n, 1);
+    P2 = sub2ind([num_diffusions, 2], n, 2);
+    
+    ax{2 * n - 1} = subplot(2, num_diffusions, P1, 'parent', f);
+    set(gca, 'units', 'pixels');
+    
+    ax{2 * n} = subplot(2, num_diffusions, P2, 'parent', f);
+    set(gca, 'units', 'pixels');
+
+end
+
+% Allocate running CC sum for the CCC
+cc_full_sum = zeros(region_height, region_width, num_diffusions) + ...
+    1i * zeros(region_height, region_width, num_diffusions);
+
+cc_rows = zeros(num_regions_eq, region_width, num_diffusions) + ...
+    1i * zeros(num_regions_eq, region_width, num_diffusions);
+
+
+parfor n = 1 : num_diffusions
+ 
 
 % Random displacements
 s_rand = diffusion_list(n);
@@ -120,27 +157,14 @@ sy_rand = s_rand;
 sz_rand = s_rand;
 
 
-
-% Allocate running CC sum for the CCC
+% Allocate running CC sum for the CC minus the NCC
 cc_sum = zeros(region_height, region_width) + ...
     1i * zeros(region_height, region_width);
-
-% Allocate running CC sum for the CC minus the NCC
-cc_full_sum = zeros(region_height, region_width) + ...
-    1i * zeros(region_height, region_width);
-
-scc_full_sum = zeros(region_height, region_width);
-
-rpc_full_sum = zeros(region_height, region_width);
-
-
-cc_abs_cur_new = zeros(region_height, region_width);
-
-cc_test = zeros(region_height, region_width);
-
   
 % Do the corresponding correlation
 for k = 1 : num_regions_eq
+    
+    fprintf(1, 'On %d of %d...\n', k, num_regions_eq);
     
     dx = sx_mean + sx_rand * randn(num_particles, 1);
     dy = sy_mean + sy_rand * randn(num_particles, 1);
@@ -197,134 +221,121 @@ for k = 1 : num_regions_eq
     % Cross correlation
     cc_cur = fftshift(F1_eq .* conj(F2_eq));
 
-    scc_cur = fftshift(abs(ifft2(fftshift(cc_cur))));
-
-    rpc_cur = fftshift(abs(ifft2(fftshift(phaseOnlyFilter(cc_cur) .* rpc_filter))));
-
-    scc_full_sum = scc_full_sum + scc_cur;
-
-    rpc_full_sum = rpc_full_sum + rpc_cur;
-
     % Full CC sum
-    cc_full_sum = cc_full_sum + cc_cur;
+    cc_rows(k, :, n) = cc_cur(yc + 2, :);
+
+end
 
 end
 
 
-cc_mag = abs(cc_full_sum);
-cc_mag_norm = cc_mag ./ max(cc_mag(:));
+cc_rows_sum = squeeze(sum(cc_rows, 1));
+cc_rows_mean = cc_rows_sum ./ num_regions_eq;
+
+ph_rows = angle(cc_rows);
 
 
-% Fit the APC filter
-[A, sy, sx, B, ARRAY] = fit_gaussian_2D(cc_mag_norm);
 
-% Create the filter
+cc_abs = abs(cc_rows_sum);
+cc_rows_std_dev = squeeze(std(ph_rows, [], 1)) ./ cc_abs;
 
-% Filter the APC
-apc_filter = exp(-x.^2 / (2 * sx^2)) .* exp(-y.^2 / (2 * sy^2));
+z = zeros(region_width, 1);
+xv = (x(1, :))';
 
-apc_plane_spect = apc_filter .* phaseOnlyFilter(cc_full_sum);
+for n = 1 : num_diffusions
+   
+cc_std_dev = cc_rows_std_dev(:, n);
+cc_sum_vect = cc_rows_sum(:, n);
+cc_sum_vect_real = real(cc_sum_vect);
+cc_sum_abs_vect = abs(cc_sum_vect);
+cc_sum_phase = real(phaseOnlyFilter(cc_sum_vect));
 
-rpc_plane_spectral_ensemble = rpc_filter .* phaseOnlyFilter(cc_full_sum);
+cc_sum_abs_norm = cc_sum_abs_vect ./ max(cc_sum_abs_vect);
 
-% Spatial APC plane
-apc_plane_spatial = fftshift(abs(ifft2(fftshift(apc_plane_spect))));
-
-rpc_plane_spectral_ensemble_spatial = fftshift(abs(ifft2(fftshift(rpc_plane_spectral_ensemble))));
-
-scc_plane_spectral_ensemble_spatial = fftshift(abs(ifft2(fftshift(cc_full_sum))));
-
-
-P1 = sub2ind([4, num_diffusions], 1, n);
-P2 = sub2ind([4, num_diffusions], 2, n);
-P3 = sub2ind([4, num_diffusions], 3, n);
-P4 = sub2ind([4, num_diffusions], 4, n);
-
-subplot(num_diffusions, 4, P1);
-surf(scc_plane_spectral_ensemble_spatial ./ max(scc_plane_spectral_ensemble_spatial(:)), 'linewidth', lw);
-axis square
-xlim([1, region_width]);
-ylim([1, region_height]);
+% subplot(2, num_diffusions, P1, 'parent', f);
+axes(ax{2 * n - 1})
+plot(cc_sum_vect_real ./ max(cc_sum_vect_real), '-k', 'linewidth', lw);
+hold on;
+plot(cc_sum_abs_norm, '--r', 'linewidth', lw)
+set(gca, 'xticklabel', '');
+set(gca, 'yticklabel', '');
+set(gca, 'xtick', xt);
+set(gca, 'ytick', linspace(-1, 1, 5))
+box on;
+grid on;
+title_str = sprintf('$\\sigma_\\mathbf{d} = %d$', diffusion_list(n));
+title(title_str, 'fontsize', fSize_title, 'interpreter', 'latex');
+   
 
 if n == 1
-    p_origin = get(gca, 'position');
-    p_origin_left  = p_origin(1);
-    p_origin_bottom = p_origin(2);
-    p_origin_width = p_origin(3);
-    p_origin_height = p_origin(4);
-else
-  p = get(gca, 'position');
-  p(2) =  p_origin_bottom - (n - 1) * p_origin_height;
-  set(gca, 'position', p);  
-end
-axis off
-axis vis3d
-
-subplot(num_diffusions, 4, P2 );
-surf(rpc_plane_spectral_ensemble_spatial ./ max(rpc_plane_spectral_ensemble_spatial(:)), 'linewidth', lw);
-axis square
-xlim([1, region_width]);
-ylim([1, region_height]);
-
-if n > 1
-    p = get(gca, 'position');
-    p(2) = p_origin_bottom - (n - 1) * p_origin_height;
-    set(gca, 'position', p); 
+    p_anchor = get(gca, 'position');
+    p_left = p_anchor(1);
+    p_bottom = p_anchor(2);
+    p_height = p_anchor(4);
+    p_width = p_height * height_fract;    
 end
 
-p = get(gca, 'position');
-p(1) = p_origin_left + p_origin_width;
+
+p = p_anchor;
+p(1) = p_left + (p_width + dx_subplot) * (n - 1);
+p(3) = p_width;
+p(4) = p_height;
 set(gca, 'position', p);
 
-axis off
-axis vis3d
-
-subplot(num_diffusions, 4, P3);
-surf(apc_plane_spatial ./ max(apc_plane_spatial(:)), 'linewidth', lw);
-axis square
+ylim(1.05 * [-1, 1]);
 xlim([1, region_width]);
-ylim([1, region_height]);
-if n > 1
-    p = get(gca, 'position');
-    p(2) = p_origin_bottom - (n - 1) * p_origin_height;
-    set(gca, 'position', p); 
+
+if n == 1
+ylabel('$ \mathcal{R} \{ R\left(k\right) \}$',...
+    'interpreter', 'latex', 'fontsize', fSize_labels);
+
+h_leg = legend('$\mathcal{R}\{ R \left(k\right) \}$',...
+    '$\left| \mathcal{R}\{ R \left(k\right)\} \right| $');
+set(h_leg, 'interpreter', 'latex')
+set(h_leg, 'fontsize', fSize_legend);
+
 end
+
+% subplot(2, num_diffusions, P2, 'parent', f);
+axes(ax{2 * n});
+plot(cc_sum_phase, '-k', 'linewidth', lw);
 
 p = get(gca, 'position');
-p(1) = p_origin_left + 2 * p_origin_width;
+p(1) = p_left + (p_width + dx_subplot) * (n - 1);
+p(2) = p_bottom - p_height - dy_subplot;
+p(3) = p_width;
+p(4) = p_height;
 set(gca, 'position', p);
-
-axis off
-axis vis3d
-
-subplot(num_diffusions, 4, P4);
-surf(real(cc_full_sum) ./ max(real(cc_full_sum(:))), 'linewidth', lw);
-axis square
 xlim([1, region_width]);
-ylim([1, region_height]);
-if n > 1
-    p = get(gca, 'position');
-    p(2) = p_origin_bottom - (n - 1) * p_origin_height;
-    set(gca, 'position', p); 
-end
+ylim([-1, 1]);
+set(gca, 'yticklabel', '');
+set(gca, 'ytick', linspace(-1, 1, 10))
+set(gca, 'xtick', xt);
+set(gca, 'xticklabel', xtl);
+box on;
+grid on;
+set(gca, 'fontsize', fSize_axes);
+xlabel('$k / \pi$', ...
+    'interpreter', 'latex', 'fontsize', fSize_labels);
 
-p = get(gca, 'position');
-p(1) = p_origin_left + 3 * p_origin_width;
-set(gca, 'position', p);
-
-axis off
-axis vis3d
-set(gca, 'view', [0, 0]);
-
-
-
+if n == 1
+    ylabel('$\mathcal{R} \{ \phi \left(k\right) \} $',...
+    'interpreter', 'latex', 'fontsize', fSize_labels);
 end
 
 
-close all 
-p = phaseOnlyFilter(cc_full_sum(yc, :));
-plot(real(p), '-k', 'linewidth', 2);
-pbaspect([3, 1, 1]);
+    
+end
+
+
+set(gcf, 'color', 'white');
+tightfig;
+
+
+
+
+
+
 
 
 % surf(cc_mag_norm);

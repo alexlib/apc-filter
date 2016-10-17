@@ -122,6 +122,8 @@ for p = 1 : num_images
     % and for some reason running the xa
     % first "region" loop in parallel
     % is slower than running it serially.
+    
+    v = [  -23.1000    6.8000];
     for k = 1 : num_regions
         % Inform the user
         fprintf(1, 'On image %d, APC fit %d of %d\n', p, k, num_regions);
@@ -156,6 +158,12 @@ for p = 1 : num_images
         % Filter the spectral correlation and invert it
         apc_spatial = fftshift(abs(ifft2(fftshift(...
             phaseOnlyFilter(cc_spectral) .* apc_filt))));
+        
+        scc_spectral = fftshift(abs(ifft2(fftshift(...
+            cc_spectral))));
+        
+         rpc_spectral = fftshift(abs(ifft2(fftshift(...
+            phaseOnlyFilter(cc_spectral) .* rpc_filter))));
 
         % APC Subpixel fit
         [tx_apc(k, p), ty_apc(k, p)] = subpixel(...
@@ -171,6 +179,35 @@ for p = 1 : num_images
         [tx_scc(k, p), ty_scc(k, p)] = subpixel(...
             scc_spatial, region_width, region_height, subpix_weights,...
             1, 0, dp_static * [1, 1]);
+
+%         rpc_spatial_sub = rpc_spatial - min(rpc_spatial(:));
+%         
+%         subplot(1, 3, 1);
+%         rsurf(rpc_spatial_sub ./ max(rpc_spatial_sub(:)) , 'linewidth', 1E-5);
+%         axis off
+%         set(gca, 'view', v)
+%         p = get(gca, 'position');
+%         
+%         
+%         subplot(1, 3, 2);
+%         rsurf(rpc_spectral ./ max(rpc_spectral(:)), 'linewidth', 1E-5);
+%         axis off
+%         set(gca, 'view', v)
+%         g = get(gca, 'position');
+%         g(1) = p(1) + p(3);
+%         set(gca, 'position', g);
+%         
+%         subplot(1, 3, 3)       
+%         rsurf(apc_spatial ./ max(apc_spatial(:)), 'linewidth', 1E-5);
+%         axis off
+%         set(gca, 'view', v)
+%         g = get(gca, 'position');
+%         g(1) = p(1) + 2 * p(3);
+%         set(gca, 'position', g);
+%         drawnow
+%         
+%         pause
+        
 
     end % End (parfor k = 1 : num_regions);    
 
