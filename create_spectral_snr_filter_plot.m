@@ -18,6 +18,9 @@ n_plot_cols = 3;
 
 units_str = 'normalized';
 
+mad_x_thresh = 0.05;
+mad_y_thresh = 0.05;
+
 p_scale = 1;
 
 dx_plot = p_scale * 0.4;
@@ -60,10 +63,10 @@ sz_mean = 0;
 
 % diffusion_list = 2;
 % R_list = [0, 1.5, 4.5, 6];
-R_list = [0, 3];
+R_list = [0, 3, 5];
 
 % Window size
-window_fraction = 1 * [1, 1];
+window_fraction = 0.5 * [1, 1];
 
 % % Grid step
 gx_range = 0;
@@ -387,7 +390,8 @@ E_slice_norm_yproj = E_slice_yproj ./ max(E_slice_yproj(:));
 E_slice_xproj = gauss_fit(:, xc);
 E_slice_norm_xproj = E_slice_xproj ./ max(E_slice_xproj(:));
 
-
+mad_y = mean(abs(E_norm_y' - E_slice_xproj));
+mad_x = mean(abs(E_norm_x - E_slice_yproj));
 
 mesh(gauss_fit ./ max(gauss_fit(:)), ...
     'edgecolor', 'black', 'linewidth', lw_mesh);
@@ -436,12 +440,13 @@ set(gca, 'view', ax_view);
 
 hold off;
 
+fprintf(1, 'MAD y: %0.3f\tMAD x: %0.3f\n', mad_y, mad_x);
 
-% drawnow;
+drawnow;
 
-accept_str = input('Accept? [N/y]: ', 's');
+accept = min([mad_y < mad_y_thresh, mad_x < mad_x_thresh]);
 
-if ~isempty(regexpi(accept_str, 'y'));
+if accept;
     accept_this = true;
 else
     cla(ax1);
@@ -505,21 +510,70 @@ annotation('textbox', 'position', textbox_pos, ...
     
 end
 
+% Make the legend by hand. 
+% Like our forefathers used to.
+
+dx_legend = 0.05;
+dy_legend = 0.09;
+leg_line_length = subplot_width / 7;
+leg_line_spacing_x = 0.08;
+
+text_spacing_x = 0;
+text_spacing_y = 0.0125;
+c_blue = p_colors(2, :);
+c_black = p_colors(3, :);
+
+delete(findall(gcf,'Tag','legend_line_01'))
+delete(findall(gcf,'Tag','legend_line_02'))
+delete(findall(gcf,'Tag','legend_text_01'))
+delete(findall(gcf,'Tag','legend_text_02'))
+
+h1 = annotation('line', 'Tag', 'legend_line_01');
+h1.Color = c_black;
+h1.LineWidth = lw_line;
+h1.LineStyle = '--';
+
+h1_left = p_origin_left + 2 * subplot_width * dx_plot_fract + dx_legend;
+h1_bottom = p_origin_bottom - (num_diffusions - 1) * subplot_height * dy_plot_fract + dy_plot_mag + dy_legend;
+h1_width = leg_line_length;
+h1_height = 0;
+h1.Position= [h1_left, h1_bottom, h1_width, h1_height] ;
 
 
+% Legend line 2
+h2 = annotation('line', 'Tag', 'legend_line_01');
+h2.Color = c_blue;
+h2.LineWidth = lw_line;
+h2.LineStyle = '-';
+
+h2_left = h1_left + leg_line_spacing_x;
+h2_bottom = h1_bottom;
+h2_width = h1_width;
+h2_height = h1_height;
+h2.Position= [h2_left, h2_bottom, h2_width, h2_height] ;
 
 
+t1 = annotation('textbox', 'position', textbox_pos, ...
+    'string', 'Fit', ...
+    'fontsize', fSize_textbox, ...
+    'interpreter', 'latex', ...
+    'Tag', 'legend_text_01', 'linestyle', 'none');
 
+t1_pos = h1.Position;
+t1_pos(1) = t1_pos(1) + leg_line_length + text_spacing_x;
+t1_pos(2) = t1_pos(2) + text_spacing_y;
+t1.Position = t1_pos;
 
+t2 = annotation('textbox', 'position', textbox_pos, ...
+    'string', 'Theory', ...
+    'fontsize', fSize_textbox, ...
+    'interpreter', 'latex', ...
+    'Tag', 'legend_text_02', 'linestyle', 'none');
 
-
-
-
-
-
-
-
-
+t2_pos = h2.Position;
+t2_pos(1) = h2_left + leg_line_length + text_spacing_x;
+t2_pos(2) = t1_pos(2);
+t2.Position = t2_pos;
 
 
 
