@@ -10,7 +10,7 @@ fsize_title = 18;
 lw = 3;
 
 % Size of the domain
-region_width = 512;
+region_width = 64;
 
 % Window fraction
 win_fract = 0.5;
@@ -26,7 +26,7 @@ k = x / region_width;
 
 % Particle diameter
 % dp = 1 * sqrt(8);
-dp = 3;
+dp = 3.2;
 % dp = 5;
 
 % dp = 1E-3;
@@ -37,10 +37,12 @@ dx_range = region_width / 80;
 
 % Mean displacement
 dx_mean = dx_range / 2;
-dx_mean = 8;
+dx_mean = 5;
 
 % Ratio between spread and diameter
 R = dx_range / dp;
+R = 2;
+pix_per_pix = R * dp / 64;
 
 % Particle diameter is defined as four times the
 % standard deviation of the Gaussian particle shape
@@ -91,16 +93,21 @@ pc_full = real(W_c .* pc);
 % This is the FT of the displacement PDF
 
 % Define the 'gray' color
-c_gray = 0.7 * [1, 1, 1];
+c_gray = 0.5 * [1, 1, 1];
+c_blue = 1 / 255 * [30, 180, 255];
+c_red = [0.9922    0.6824    0.3804];
+
+p_colors = get_plot_colors(5);
 
 figure(1);
 % plot(k, A_rpc, '-k', 'linewidth', 5);
 % subplot(1, 2, 1)
-plot(k, pc_full, '-k', 'linewidth', lw, 'color', c_gray);
+plot(k, pc_full, '-k', 'linewidth', lw, 'color', 'black');
 hold on
-plot(k, A , '--k', 'linewidth', lw);
-plot(k, (P) , '--', 'linewidth', lw, 'color', c_gray);
-plot(k, W_abs , '-', 'linewidth', lw, 'color', 'black');
+plot(k, A , '--', 'linewidth', lw, 'color', 'black');
+plot(k, P , '--', 'linewidth', lw, 'color', p_colors(1, :));
+% plot(k, P , '--', 'linewidth', lw, 'color', 'green');
+plot(k, W_abs , '-', 'linewidth', lw, 'color', c_blue);
 hold off
 
 % Options
@@ -115,11 +122,13 @@ ylabel('$E / E_o$',...
 
 % Axes limits
 xlim(0.5* [-1, 1])
-ylim([-2.6, 3.6]);
+ylim([-1.7, 3.6]);
 
 % Format the axes
 set(gca, 'xtick', 0.5 * [-1, 0, 1]);
 set(gca, 'xticklabel', {'-1', '0', '1'});
+
+set(gca, 'ytick', linspace(-1, 3.0, 5));
 
 
 % Legend entries
@@ -134,13 +143,15 @@ h = legend(legend_entries);
 % Format the legend
 set(h, 'interpreter', 'latex',...
     'location', 'southeast', ...
-    'fontsize', 16);
+    'fontsize', 24);
 
 % Title
 title(sprintf(...
     'Spectral correlation, shear gradient 0.1 pix/pix, $d_p = %0.1f$ pix', dp),...
     'interpreter', 'latex', ...
     'fontsize', fsize_title);
+
+title_str = sprintf('$\\textrm{Spectral correlation}, \\Delta \\d_x / \\d_\\tau = %0.2f$', R, );
 
 % Figure color (need to set
 % this to use export_fig

@@ -1,12 +1,12 @@
 function rgb_list =  get_plot_colors(N)
 
 if nargin == 0
-    N = 3;
+    num_colors = 3;
 else
-    N = 5;
+    num_colors = N;
 end
 
-if N == 5
+if num_colors == 5
     rgb_list = zeros(5, 3);
     rgb_list(1, :) = [215, 25, 28];
     rgb_list(2, :) = [253, 174, 97];
@@ -16,8 +16,8 @@ if N == 5
 
 else
     rgb_list = zeros(3, 3);
-    rgb_list(1, :) = [30, 144, 255];
-    rgb_list(2, :) = [228, 0, 27];
+    rgb_list(1, :) = [215, 25, 28];
+    rgb_list(2, :) = [30, 180, 255];
     rgb_list(3, :) = [0, 0, 0];
 end
 

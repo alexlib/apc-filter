@@ -6,24 +6,20 @@ fSize_title = 30;
 fSize_labels = 30;
 fSize_legend = 16;
 
-sx_mean = 8;
+sx_mean = 20;
 sy_mean = 0;
 sz_mean = 0;
 
-diffusion_list = [0, 2, 5];
-
 % diffusion_list = 0;
-
-num_diffusions = length(diffusion_list);
 
 num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 1000;
+num_regions_eq = 1;
 
 % Image dimensions
-region_height = 32;
-region_width  = 32;
+region_height = 64;
+region_width  = 64;
 
 % % Grid step
 gx_range = 0;
@@ -51,14 +47,25 @@ window_fraction = 1 * [1, 1];
 d_std = 0;
 
 % Mean particle diameter
-d_mean = 3;
+d_mean = 3.2;
+
+% Ratio of shearing range to dp
+% shearing_ratio_list = [0.0, 0.5, 1.0, 1.5];
+shearing_ratio_list = [0, 2];
+shearing_list = shearing_ratio_list .* d_mean;
+num_shears = length(shearing_list);
+
+% % Range of displacements
+% sx_range = shearing_ratio_list * d_mean;
+% sy_range = shearing_ratio_list * d_mean;
+
 % d_mean = 1;
 % Particle concentration in particles per pixel
 particle_concentration = 2E-2;
 
 % Image noise
-noise_mean_fract = 0E-2;
-noise_std_fract  = 5E-2;
+noise_mean_fract = 5E-2;
+noise_std_fract  = 2E-2;
 % noise_mean_fract = 0;
 % noise_std_fract  = 0;
 
@@ -120,41 +127,42 @@ dy_subplot = 20;
 dx_subplot = 40;
 height_fract = 2;
 
-close all;
-f = figure;
+% close all;
+f = figure(1);
 f_pos = [-1244         497         972         694];
 set(f, 'position', f_pos);
 
 
-for n = 1 : num_diffusions
+for n = 1 : num_shears
     
-    P1 = sub2ind([num_diffusions, 2], n, 1);
-    P2 = sub2ind([num_diffusions, 2], n, 2);
+    P1 = sub2ind([num_shears, 2], n, 1);
+    P2 = sub2ind([num_shears, 2], n, 2);
     
-    ax{2 * n - 1} = subplot(2, num_diffusions, P1, 'parent', f);
+    ax{2 * n - 1} = subplot(2, num_shears, P1, 'parent', f);
     set(gca, 'units', 'pixels');
     
-    ax{2 * n} = subplot(2, num_diffusions, P2, 'parent', f);
+    ax{2 * n} = subplot(2, num_shears, P2, 'parent', f);
     set(gca, 'units', 'pixels');
 
 end
 
 % Allocate running CC sum for the CCC
-cc_full_sum = zeros(region_height, region_width, num_diffusions) + ...
-    1i * zeros(region_height, region_width, num_diffusions);
+cc_full_sum = zeros(region_height, region_width, num_shears) + ...
+    1i * zeros(region_height, region_width, num_shears);
 
-cc_rows = zeros(num_regions_eq, region_width, num_diffusions) + ...
-    1i * zeros(num_regions_eq, region_width, num_diffusions);
+cc_rows = zeros(num_regions_eq, region_width, num_shears) + ...
+    1i * zeros(num_regions_eq, region_width, num_shears);
 
+scc_sum = zeros(region_height, region_width, num_shears);
 
-parfor n = 1 : num_diffusions
+for n = 1 : num_shears
  
 
 % Random displacements
-s_rand = diffusion_list(n);
-sx_rand = s_rand;
-sy_rand = s_rand;
-sz_rand = s_rand;
+s_range = shearing_list(n);
+sx_range = s_range;
+sy_range = s_range;
+
 
 
 % Allocate running CC sum for the CC minus the NCC
@@ -166,15 +174,22 @@ for k = 1 : num_regions_eq
     
     fprintf(1, 'On %d of %d...\n', k, num_regions_eq);
     
-    dx = sx_mean + sx_rand * randn(num_particles, 1);
-    dy = sy_mean + sy_rand * randn(num_particles, 1);
-    dz = sz_mean + sz_rand * randn(num_particles, 1);
+    % Uncomment this for random displacements
+%     dx = sx_mean + sx_rand * randn(num_particles, 1);
+%     dy = sy_mean + sy_rand * randn(num_particles, 1);
+%     dz = sz_mean + sz_rand * randn(num_particles, 1);
 
     % Particle positions (image 1)
     x_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
     y_01 = (y_max - y_min) * rand(num_particles, 1) + y_min;
     z_01 = (z_max - z_min) * rand(num_particles, 1) + z_min; 
-
+    
+    
+    % Uncomment this for shearing
+    dx = sx_range * (y_01 - yc) /region_height + sx_mean;
+    dy = sy_range * (x_01 - xc) /region_width  + sy_mean;
+    dz = zeros(num_particles, 1);
+   
     % Particle positions (image 2)
     % TLW
     x_02 = x_01 + dx;
@@ -220,9 +235,14 @@ for k = 1 : num_regions_eq
     
     % Cross correlation
     cc_cur = fftshift(F1_eq .* conj(F2_eq));
+    
+    % SCC current
+    scc_cur = fftshift(abs(ifft2(fftshift(cc_cur))));
 
     % Full CC sum
     cc_rows(k, :, n) = cc_cur(yc + 2, :);
+    
+    scc_sum(:, :, n) = scc_sum(:, :, n) + scc_cur;
 
 end
 
@@ -242,13 +262,15 @@ cc_rows_std_dev = squeeze(std(ph_rows, [], 1)) ./ cc_abs;
 z = zeros(region_width, 1);
 xv = (x(1, :))';
 
-for n = 1 : num_diffusions
+for n = 1 : num_shears
    
 cc_std_dev = cc_rows_std_dev(:, n);
 cc_sum_vect = cc_rows_sum(:, n);
 cc_sum_vect_real = real(cc_sum_vect);
 cc_sum_abs_vect = abs(cc_sum_vect);
 cc_sum_phase = real(phaseOnlyFilter(cc_sum_vect));
+cc_sum_angle = angle(phaseOnlyFilter(cc_sum_vect));
+
 
 cc_sum_abs_norm = cc_sum_abs_vect ./ max(cc_sum_abs_vect);
 
@@ -263,7 +285,7 @@ set(gca, 'xtick', xt);
 set(gca, 'ytick', linspace(-1, 1, 5))
 box on;
 grid on;
-title_str = sprintf('$\\sigma_\\mathbf{d} = %d$', diffusion_list(n));
+title_str = sprintf('$\\sigma_\\mathbf{d} = %0.2f$', shearing_ratio_list(n));
 title(title_str, 'fontsize', fSize_title, 'interpreter', 'latex');
    
 
@@ -332,14 +354,28 @@ set(gcf, 'color', 'white');
 tightfig;
 
 
-
-
-
-
-
-
-% surf(cc_mag_norm);
-
+% close all
+% s_max = 19.7718;
+% 
+% cur_max = max(scc_cur(:) / s_max);
+% 
+% fprintf(1, 'Peak height: %0.2f\n', cur_max);
+% 
+% scc_plane = scc_cur;
+% 
+% % subplot(2, 1, 1);
+% mesh(scc_plane, 'edgecolor', 'black', 'linewidth', 1);
+% axis square
+% xlim([1, region_width]);
+% ylim([1, region_height]);
+% zlim([0, 19.8]);
+% axis off;
+% 
+% 
+% 
+% 
+% % surf(cc_mag_norm);
+% 
 % % This is for making the SCC ensemble
 % % versus phase angle plots
 % subplot(2, 1, 1);
@@ -369,7 +405,7 @@ tightfig;
 % % % % print(1, '-depsc', plot_path);
 % 
 
-
+figure(2); surf(scc_sum(:, :, 1));
 
 
 

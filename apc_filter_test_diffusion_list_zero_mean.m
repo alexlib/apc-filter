@@ -4,31 +4,31 @@
 fSize_axes = 9;
 fSize_title = 12;
 
-sx_mean = 8;
+sx_mean = 5;
 sy_mean = 0;
 sz_mean = 0;
 
-diffusion_list = 2;
+% diffusion_list = 2;
+diffusion_list = [0, 2, 4];
 
-% diffusion_list = 0;
+% Window size
+window_fraction = 1 * [1, 1];
 
 num_diffusions = length(diffusion_list);
 
 num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 1000;
+num_regions_eq = 10;
 num_regions_neq = 1;
 % 
 
-
 % Image dimensions
-region_height = 128;
-region_width  = 128;
+region_height = 64;
+region_width  = 64;
 % % Grid step
 gx_range = 0;
 gx_step = 0;
-
 
 % Center pixels
 xc = fourier_zero(region_width);
@@ -42,8 +42,7 @@ yv = (1 : region_height) - yc;
 [x, y] = meshgrid(xv, yv);
 
 
-% Window size
-window_fraction = 0.5 * [1, 1];
+
 
 
 % % Particle stuff
@@ -52,14 +51,21 @@ window_fraction = 0.5 * [1, 1];
 d_std = 0;
 
 % Mean particle diameter
-d_mean = 3;
+d_mean = 3.2;
+
+R = 1.5;
+
+% Range of displacements
+sx_range = R * d_mean;
+sy_range = R * d_mean;
+
 % d_mean = 1;
 % Particle concentration in particles per pixel
 particle_concentration = 2E-2;
 
 % Image noise
 noise_mean_fract = 0E-2;
-noise_std_fract  = 0.15;
+noise_std_fract  = 5.0E-2;
 % noise_mean_fract = 0;
 % noise_std_fract  = 0;
 
@@ -112,13 +118,11 @@ lw = 1E-5;
 
 for n = 1 : num_diffusions
     
-
 % Random displacements
 s_rand = diffusion_list(n);
 sx_rand = s_rand;
 sy_rand = s_rand;
 sz_rand = s_rand;
-
 
 
 % Allocate running CC sum for the CCC
@@ -138,10 +142,13 @@ cc_abs_cur_new = zeros(region_height, region_width);
 
 cc_test = zeros(region_height, region_width);
 
+ scc_max = zeros(num_regions_eq, 1);
   
 % Do the corresponding correlation
 for k = 1 : num_regions_eq
     
+    
+    % Uncomment this for random displacements
     dx = sx_mean + sx_rand * randn(num_particles, 1);
     dy = sy_mean + sy_rand * randn(num_particles, 1);
     dz = sz_mean + sz_rand * randn(num_particles, 1);
@@ -150,6 +157,11 @@ for k = 1 : num_regions_eq
     x_01 = (x_max - x_min) * rand(num_particles, 1) + x_min;
     y_01 = (y_max - y_min) * rand(num_particles, 1) + y_min;
     z_01 = (z_max - z_min) * rand(num_particles, 1) + z_min; 
+    
+    % Uncomment this for shearing
+    dx = sx_range * (y_01 - yc) /region_height + sx_mean;
+    dy = sy_range * (x_01 - xc) /region_width + sy_mean;
+    dz = zeros(num_particles, 1);
 
     % Particle positions (image 2)
     % TLW
@@ -198,6 +210,8 @@ for k = 1 : num_regions_eq
     cc_cur = fftshift(F1_eq .* conj(F2_eq));
 
     scc_cur = fftshift(abs(ifft2(fftshift(cc_cur))));
+    
+    scc_max(k) = max(scc_cur(:));
 
     rpc_cur = fftshift(abs(ifft2(fftshift(phaseOnlyFilter(cc_cur) .* rpc_filter))));
 
@@ -320,11 +334,71 @@ set(gca, 'view', [0, 0]);
 
 end
 
+s_max = 62;
 
-close all 
-p = phaseOnlyFilter(cc_full_sum(yc, :));
-plot(real(p), '-k', 'linewidth', 2);
-pbaspect([3, 1, 1]);
+scc_ens_norm = scc_full_sum ./ num_regions_eq;
+
+cur_max = max(scc_ens_norm(:) / s_max);
+
+fprintf(1, 'Peak height: %0.2f\n', cur_max);
+
+scc_plane = scc_cur;
+
+% subplot(2, 1, 1);
+figure(1);
+subplot(2, 1, 1);
+mesh(scc_full_sum ./ num_regions_eq, 'edgecolor', 'black', 'linewidth', 1E-5);
+axis square
+xlim([1, region_width]);
+ylim([1, region_height]);
+zlim([0, s_max]);
+axis off;
+set(gca, 'view', [-35, 15]);
+
+scc_angle = angle(cc_full_sum);
+scc_real = real(cc_full_sum);
+scc_abs = abs(cc_full_sum);
+scc_phase = real(phaseOnlyFilter(cc_full_sum));
+
+
+
+plot_row = 4;
+
+% figure(2);
+% imagesc(scc_real);
+% axis image;
+
+
+subplot(2, 1, 2);
+imagesc(scc_phase);
+axis image;
+axis off
+colormap winter
+caxis(0.6 * [-1, 1]);
+
+figure(2);
+plot(scc_phase(yc + plot_row, :), '-k', 'linewidth', 2);
+axis square;
+axis off
+colormap winter
+caxis(0.6 * [-1, 1]);
+
+% hold on;
+% plot(scc_real(yc + plot_row, :), '--k', 'linewidth', 2);
+% hold off
+
+% subplot(2, 1, 2);
+% plot((abs((cc_cur(yc + 2, :)))), '-k', 'linewidth', 2);
+% axis square;
+% xlim([1, region_width]);
+
+
+
+
+
+% p = phaseOnlyFilter(cc_full_sum(yc, :));
+% plot(real(p), '-k', 'linewidth', 2);
+% pbaspect([3, 1, 1]);
 
 
 % surf(cc_mag_norm);
