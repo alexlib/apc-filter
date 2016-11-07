@@ -15,8 +15,8 @@ fSize_title = 12;
 num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 1000;
-num_regions_neq = 1;
+num_regions_eq = 100;
+num_regions_neq = 1000;
 
 cc_abs_mad = zeros(num_regions_eq, 1);
 
@@ -108,14 +108,14 @@ d_mean = 3;
 particle_concentration = 2E-2;
 
 % Image noise
-noise_mean_fract = 2E-2;
-noise_std_fract  = 2E-2;
+noise_mean_fract = 0E-2;
+noise_std_fract  = 0E-2;
 % noise_mean_fract = 0;
 % noise_std_fract  = 0;
 
 % Particle positions buffer
 x_buffer = -16;
-y_buffer = -16;
+y_buffer = x_buffer;
 
 
 % % % % %
@@ -212,11 +212,15 @@ for k = 1 : num_regions_neq
     % Generate the second image
     region_neq_02 = (generateParticleImage(region_height, region_width,...
     x_neq_02, y_neq_02, dp_neq_02, particle_intensities_neq_02) + noise_mat_neq_02);
+    
 
     % Transforms
     F1_neq = fft2(g_win .* (region_neq_01 - mean(region_neq_01(:))));
     F2_neq = fft2(g_win .* (region_neq_02 - mean(region_neq_02(:))));
-
+%     
+%     F1_neq = fft2(g_win .* (region_neq_01));
+%     F2_neq = fft2(g_win .* (region_neq_02));
+    
     % Autocorrelations
     ac_01_neq = fftshift(F1_neq .* conj(F1_neq));
     ac_02_neq = fftshift(F2_neq .* conj(F2_neq));
@@ -467,8 +471,9 @@ v = [-34, 9];
 
 lw = 1E-5;
 
+g = ncc_sum ./ particle_shape_sum;
 
-
+mesh(real(g) ./ max(real(g(:))), 'edgecolor', 'black', 'linewidth', 1);
 
 
 

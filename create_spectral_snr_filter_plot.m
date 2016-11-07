@@ -2,12 +2,24 @@
 
 
 % Number of corresponding regions
-num_regions_eq = 20;
+num_regions_eq = 200;
 num_regions_neq = 1;
 
 % Image dimensions
-region_height = 32;
-region_width  = 32;
+region_height = 128;
+region_width  = 128;
+
+% Fraction of diffusion std dev 
+% in the Y direction compared to X
+sy_rand_fract = 1;
+
+% List of diffusion ratios
+R_list = [0, 3, 5];
+R_list = 0.6;
+
+% MAD thresholds
+mad_x_thresh = 0.1;
+mad_y_thresh = 0.1;
 
 fSize_axes = 9;
 fSize_title = 12;
@@ -18,8 +30,6 @@ n_plot_cols = 3;
 
 units_str = 'normalized';
 
-mad_x_thresh = 0.05;
-mad_y_thresh = 0.05;
 
 p_scale = 1;
 
@@ -31,6 +41,7 @@ subplot_height = p_scale * 0.25;
 p_origin_left = 0.00;
 p_origin_bottom = 0.7073;
 
+
 dy_plot_mag = 0;
 
 dx_plot_2D = 0.06;
@@ -40,8 +51,8 @@ line_plot_fract = 0.4;
 
 
 % Textbox spacing
-dy_textbox = 0.175;
-dx_textbox = -0.02;
+dy_textbox = 0.19;
+dx_textbox = -0.015;
 
 % axis view vector
 ax_view = [16.8000; 4.8000];
@@ -58,12 +69,10 @@ lw_mesh = 1E-5;
 lw_line = 3;
 
 sx_mean = 5;
-sy_mean = 5;
+sy_mean = 0;
 sz_mean = 0;
 
-% diffusion_list = 2;
-% R_list = [0, 1.5, 4.5, 6];
-R_list = [0, 3, 5];
+
 
 % Window size
 window_fraction = 0.5 * [1, 1];
@@ -105,11 +114,11 @@ sy_range = R * d_mean;
 
 % d_mean = 1;
 % Particle concentration in particles per pixel
-particle_concentration = 4E-2;
+particle_concentration = 2E-2;
 
 % Image noise
 noise_mean_fract = 0E-2;
-noise_std_fract  = 3E-2;
+noise_std_fract  = 10E-2;
 % noise_mean_fract = 0;
 % noise_std_fract  = 0;
 
@@ -177,7 +186,7 @@ while accept_this == false
 % Random displacements
 s_rand = diffusion_list(n);
 sx_rand = s_rand;
-sy_rand = s_rand/2;
+sy_rand = s_rand * sy_rand_fract;
 % sy_rand = 0;
 sz_rand = s_rand;
 
@@ -487,23 +496,35 @@ annotation('textbox', 'position', textbox_pos, ...
 
 end
 
+textbox_sep_y = -0.02;
 
 % Diffusion labels
 for p = 1 : num_diffusions
     % Textbox positions
 textbox_x = p_origin_left - dx_textbox;
-textbox_y = p_origin_bottom - (p - 1) * subplot_height * dy_plot_fract + dy_textbox;
+textbox_y_xdir = p_origin_bottom - (p - 1) * subplot_height * dy_plot_fract + dy_textbox;
+textbox_y_ydir = p_origin_bottom - (p - 1) * subplot_height * dy_plot_fract + dy_textbox + textbox_sep_y;
+
 textbox_width = 0.5 * subplot_width;
 textbox_height = 0.25 * subplot_height;
 
 % Textbox position
-textbox_pos = [textbox_x, textbox_y, 0, 0];
+textbox_pos_xdir = [textbox_x, textbox_y_xdir, 0, 0];
+textbox_pos_ydir = [textbox_x, textbox_y_ydir, 0, 0];
 
-textbox_str = sprintf('$\\sigma_\\mathbf{d} / \\sigma_\\tau = %0.2f$', diffusion_list(p) / (d_mean / 4));
+textbox_str_xdir = sprintf('$\\sigma_{d_x} / \\sigma_\\tau = %0.2f$', diffusion_list(p) / (d_mean / 4));
+textbox_str_ydir = sprintf('$\\sigma_{d_y} / \\sigma_\\tau = %0.2f$', diffusion_list(p) / (d_mean / 4) * sy_rand_fract);
 
 % Make the annotation
-annotation('textbox', 'position', textbox_pos, ...
-    'string', textbox_str, ...
+annotation('textbox', 'position', textbox_pos_xdir, ...
+    'string', textbox_str_xdir, ...
+    'fontsize', fSize_textbox, ...
+    'interpreter', 'latex', ...
+    'Tag', 'text_box');
+
+% Make the annotation
+annotation('textbox', 'position', textbox_pos_ydir, ...
+    'string', textbox_str_ydir, ...
     'fontsize', fSize_textbox, ...
     'interpreter', 'latex', ...
     'Tag', 'text_box');
@@ -575,6 +596,55 @@ t2_pos(1) = h2_left + leg_line_length + text_spacing_x;
 t2_pos(2) = t1_pos(2);
 t2.Position = t2_pos;
 
+
+figure(2);
+surf(real(cc_full_sum) ./ max(abs(real(cc_full_sum(:)))), ...
+   'linewidth', lw_mesh);
+axis off
+axis vis3d
+set(gca , 'view', [0, 0]);
+
+figure(3);
+plot(imag(cc_full_sum(yc, :)), '-k', 'linewidth', lw_line);
+xlim([1, region_width]);
+axis square
+axis off
+
+figure(4);
+plot(imag(phaseOnlyFilter(cc_full_sum(yc, :))), '-k', 'linewidth', lw_line);
+xlim([1, region_width]);
+axis square;
+axis off
+
+figure(5);
+plot(abs(cc_full_sum(yc+1, :)), '-k', 'linewidth', lw_line);
+xlim([1, region_width]);
+axis square;
+axis off
+
+figure(6);
+plot(gauss_fit(yc, :), '-k', 'linewidth', lw_line);
+xlim([1, region_width]);
+axis square;
+axis off;
+
+
+g_spatial = fftshift(abs(ifft2(fftshift(phaseOnlyFilter(cc_full_sum) .* gauss_fit))));
+
+figure(7);
+plot(g_spatial(yc, :), '-k', 'linewidth', lw_line);
+xlim([1, region_width]);
+axis square;
+axis off;
+
+filtered_phase = imag(phaseOnlyFilter(cc_full_sum)) .* gauss_fit;
+
+
+figure(8);
+plot(filtered_phase(yc, :), '-k', 'linewidth', lw_line);
+xlim([1, region_width]);
+axis square;
+axis off;
 
 
 

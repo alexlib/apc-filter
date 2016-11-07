@@ -2,7 +2,7 @@ function apc_calculate_error_from_vectors_poiseuille(...
     vector_save_paths, ...
        image_size, ...
        dx_max,...
-       diffusion_std,...
+       diffusion_std, convergence_fraction,...
        results_save_path)
 
 % This is the number of images that were correlated
@@ -29,9 +29,14 @@ ny = length(unique(gy));
 nx = length(unique(gx));
 regions_per_pair = ny * nx;
 
+% Max radius for calculating error
+r_max = 1;
+
 % True mean displacement along the velocity profile
-tx_true = - dx_max * (r.^2 - 1);
+tx_true_full = - dx_max * (r.^2 - 1);
+tx_true = tx_true_full(r < r_max);
 ty_true = zeros(size(tx_true));
+
 
 % Vectors to hold the mean errors
 mean_err_scc_spatial = zeros(num_pairs, 1);
@@ -53,6 +58,7 @@ apc_sy_mean = zeros(regions_per_pair, 1);
 apc_sx_std = zeros(regions_per_pair, 1);
 apc_sy_std = zeros(regions_per_pair, 1);
 
+
 % Loop over the images
 for p = 1 : num_pairs
         
@@ -63,24 +69,24 @@ for p = 1 : num_pairs
     load(vector_save_paths{p});
     
     % Velocity components (spatial ensembles)
-    tx_scc_spatial = 1 * tx_pair_scc_spatial;
-    ty_scc_spatial = 1 * ty_pair_scc_spatial;
-    tx_rpc_spatial = 1 * tx_pair_rpc_spatial;
-    ty_rpc_spatial = 1 * ty_pair_rpc_spatial;
+    tx_scc_spatial = 1 * tx_pair_scc_spatial(r < r_max);
+    ty_scc_spatial = 1 * ty_pair_scc_spatial(r < r_max);
+    tx_rpc_spatial = 1 * tx_pair_rpc_spatial(r < r_max);
+    ty_rpc_spatial = 1 * ty_pair_rpc_spatial(r < r_max);
     
     % Velocity components (spectral ensembles)
-    tx_scc_spectral = 1 * tx_pair_scc_spectral;
-    ty_scc_spectral = 1 * ty_pair_scc_spectral;
-    tx_rpc_spectral = 1 * tx_pair_rpc_spectral;
-    ty_rpc_spectral = 1 * ty_pair_rpc_spectral;
+    tx_scc_spectral = 1 * tx_pair_scc_spectral(r < r_max);
+    ty_scc_spectral = 1 * ty_pair_scc_spectral(r < r_max);
+    tx_rpc_spectral = 1 * tx_pair_rpc_spectral(r < r_max);
+    ty_rpc_spectral = 1 * ty_pair_rpc_spectral(r < r_max);
     
     % Velocity components (APC spectral ensembles)
-    tx_apc = 1 * tx_pair_apc;
-    ty_apc = 1 * ty_pair_apc;
+    tx_apc = 1 * tx_pair_apc(r < r_max);
+    ty_apc = 1 * ty_pair_apc(r < r_max);
     
     % APC filter standard deviations
-    apc_sx = apc_std_x_pair;
-    apc_sy = apc_std_y_pair;
+    apc_sx = apc_std_x_pair(r < r_max);
+    apc_sy = apc_std_y_pair(r < r_max);
     
     % Absolute value of the error
     tx_err_scc_spatial = (tx_true - tx_scc_spatial);

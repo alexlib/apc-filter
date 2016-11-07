@@ -7,7 +7,7 @@
 % skip_image = 1;
 % c_step = 1;
 
-addpaths('~/Desktop');
+addpaths('..');
 
 % image_dir = '/Users/matthewgiarra/Desktop/piv_test_images/poiseuille_diffusion_3.00/raw';
 % image_base_name = 'poiseuille_diffusion_3.00_';
@@ -18,19 +18,19 @@ addpaths('~/Desktop');
 % skip_image = 2;
 % c_step = 1;
 
-image_dir = '/Users/matthewgiarra/Desktop/piv_test_images/Ball/raw';
+image_dir = fullfile(get_image_repo, 'Ball', 'raw');
 image_base_name = 'B';
 num_digits = 3;
 image_ext = '.bmp';
 start_image = 1;
-end_image = 10;
+end_image = 100;
 skip_image = 1;
 c_step = 1;
 trailer_a = 'a';
 trailer_b = 'b';
 
 % Ensemble length
-ens_lengths = 5;
+ens_lengths = 1;
 
 % Region sizes
 region_height = 64;
@@ -44,8 +44,8 @@ grid_spacing_y = 32;
 grid_spacing_x = 32;
 
 % Shuffle
-shuffle_range = 0;
-shuffle_step = 0;
+shuffle_range = [0, 0];
+shuffle_step = [0, 0];
 
 % RPC diameter
 rpc_diameter = 3;
@@ -90,10 +90,20 @@ grid_buffer_y = region_height/2 * [1, 1];
     grid_spacing, grid_buffer_y, grid_buffer_x);
 
 % Do the APC
+% [APC_STD_Y, APC_STD_X, disp_pdf_std_dev_y, disp_pdf_std_dev_x] = ...
+%     calculate_apc_filter_ensemble(image_list_01, image_list_02, ...
+%     grid_y, grid_x, region_size,...
+%     window_fraction, rpc_diameter);
+% 
 [APC_STD_Y, APC_STD_X, disp_pdf_std_dev_y, disp_pdf_std_dev_x] = ...
     calculate_apc_filter_ensemble(image_list_01, image_list_02, ...
     grid_y, grid_x, region_size,...
     window_fraction, rpc_diameter);
+% 
+% [APC_STD_Y, APC_STD_X] = ...
+%     calculate_apc_filter_from_image_pair(image_list_01{1}, image_list_02{1}, ...
+%     grid_y, grid_x, region_size, window_fraction, shuffle_range, shuffle_step);
+
 
 apc_std = sqrt(APC_STD_Y.^2 + APC_STD_X.^2);
 
@@ -145,6 +155,11 @@ for e = 1 : length(ens_lengths)
 [ty_scc, tx_scc] = ...
     scc_ensemble_spatial_full_image(image_list_01(1:num_ens), image_list_02(1:num_ens), ...
     grid_y, grid_x, region_size, window_fraction);
+
+
+
+
+
 
 tx_true = 8;
 ty_true = 0;
@@ -384,7 +399,7 @@ tightfig;
 fig_save_name = sprintf('~/Desktop/figs/fig_ball_ens_%d.png', num_ens);
 
 
-export_fig(fig_save_name, '-r300');
+% export_fig(fig_save_name, '-r300');
 
 
     

@@ -43,41 +43,38 @@ JobFile.Parameters.Processing.Grid.Spacing.X = 64;
 JobFile.Parameters.Processing.Grid.Spacing.Y = 64;
 JobFile.Parameters.Processing.Grid.Buffer.X = round(region_width  /2) * [1, 1];
 JobFile.Parameters.Processing.Grid.Buffer.Y = round(region_height /2) * [1, 1];
-% JobFile.Parameters.Processing.Grid.Buffer.X = round(JobFile.Images.Width / 2) * [1, 1];
-% JobFile.Parameters.Processing.Grid.Buffer.Y = round(JobFile.Images.Height / 2) * [1, 1];
 
-
+% RPC diameter
 JobFile.Parameters.Processing.RpcDiameter = 3;
 
-JobFile.JobOptions.LoadFilters = true;
+% Convergence fraction
+JobFile.Parameters.Processing.ConvergenceFraction = 0.01;
+
+JobFile.JobOptions.LoadFilters = false;
+JobFile.JobOptions.MakePlots = false;
 
 JobFile.JobOptions.DoCorrelations = false;
 JobFile.JobOptions.CalculateDisplacements = false;
 JobFile.JobOptions.CalculateError = true;
 
+% List diffusions
+diffusion_list = [1.5, 3, 4.5];
 
-JOB_LIST(1) = JobFile;
+% Number of diffusions
+num_diffusions = length(diffusion_list);
 
-% % New Std Dev
-diffusion_std = 3;
-case_name = sprintf('poiseuille_diffusion_%0.2f', diffusion_std);
-solution_file_name = sprintf('poiseuille_diffusion_%0.2f.mat', diffusion_std);
-JobFile.Images.Directory = fullfile(img_repo, case_name, 'raw');
-JobFile.Solution.Path = fullfile(img_repo, case_name, 'jobfiles', solution_file_name);
-JobFile.Images.BaseName = sprintf('%s_', case_name);
-
-JOB_LIST(end + 1) = JobFile;
-%  
-% % % New Std Dev
-diffusion_std = 5;
-case_name = sprintf('poiseuille_diffusion_%0.2f', diffusion_std);
-solution_file_name = sprintf('poiseuille_diffusion_%0.2f.mat', diffusion_std);
-JobFile.Images.Directory = fullfile(img_repo, case_name, 'raw');
-JobFile.Solution.Path = fullfile(img_repo, case_name, 'jobfiles', solution_file_name);
-JobFile.Images.BaseName = sprintf('%s_', case_name);
-% % 
-JOB_LIST(end + 1) = JobFile;
-
+for n = 1 : num_diffusions
+    % % New Std Dev
+    diffusion_std = diffusion_list(n);
+    case_name = sprintf('poiseuille_diffusion_%0.2f', diffusion_std);
+    solution_file_name = sprintf('poiseuille_diffusion_%0.2f.mat', diffusion_std);
+    JobFile.Images.Directory = fullfile(img_repo, case_name, 'raw');
+    JobFile.Solution.Path = fullfile(img_repo, case_name, 'jobfiles', solution_file_name);
+    JobFile.Images.BaseName = sprintf('%s_', case_name);
+    
+    JOB_LIST(n) = JobFile;
+    
+end
 
 end
 

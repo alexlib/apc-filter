@@ -65,6 +65,15 @@ function [APC_STD_Y, APC_STD_X] = ...
 %
 %
 
+
+% Load images if they're specified as paths
+if ischar(image_01);
+    image_01 = double(imread(image_01));
+end
+if ischar(image_02);
+    image_02 = double(imread(image_02));
+end
+
 % % Extract grid coordinates
 gy = grid_y(:);
 gx = grid_x(:);
@@ -133,7 +142,7 @@ APC_STD_X = zeros(num_regions, 1);
 APC_STD_Y = zeros(num_regions, 1);
 
 % Do the corresponding correlation
-parfor k = 1 : num_regions
+for k = 1 : num_regions
     
     % Inform the user.
     fprintf(1, 'On region %d of %d\n', k, num_regions);
@@ -184,6 +193,25 @@ parfor k = 1 : num_regions
     % Because what isn't these days
     [~, APC_STD_Y(k), APC_STD_X(k)] =...
     fit_gaussian_2D(cc_mag);
+
+    subplot(1, 2, 1);
+    mesh(cc_mag ./ max(cc_mag(:)), 'edgecolor', 'black');
+    xlim([1, region_width]);
+    ylim([1, region_height]);
+    zlim([0, 1.1]);
+    axis square;
+    
+    subplot(1, 2, 2);
+    imagesc(image_01); axis image;
+    hold on;
+    plot(gx, gy, '.r');
+    plot(gx(k), gy(k), 'oy', 'markerfacecolor', 'yellow');
+    hold off
+    
+    drawnow;
+    
+
+
     
 end
 

@@ -17,7 +17,6 @@ num_trials = 1;
 num_regions_eq  = 1;
 num_regions_neq = 1;
 
-% 
 
 % Image dimensions
 region_height = 64;

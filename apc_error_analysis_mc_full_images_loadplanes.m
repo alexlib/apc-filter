@@ -24,6 +24,7 @@ for n = 1 : num_jobs
     img_trailer_01 = JobFile.Images.Trailer_01;
     img_trailer_02 = JobFile.Images.Trailer_02;
     load_filters = JobFile.JobOptions.LoadFilters;
+    make_plots = JobFile.JobOptions.MakePlots;
     
     calculate_error = JobFile.JobOptions.CalculateError;
     calculate_displacements = JobFile.JobOptions.CalculateDisplacements;
@@ -48,6 +49,9 @@ for n = 1 : num_jobs
     grid_buffer_x = JobFile.Parameters.Processing.Grid.Buffer.X;
     grid_buffer_y = JobFile.Parameters.Processing.Grid.Buffer.Y;
 
+    % Convergence fraction
+    convergence_fraction = JobFile.Parameters.Processing.ConvergenceFraction;
+    
     % Load the Exact solution file
     solution_file = load(solution_file_path);
 
@@ -137,7 +141,7 @@ for n = 1 : num_jobs
             vector_save_paths, ...
             image_size, ...
             tx_max_true, ...
-            diffusion_std_dev, ...
+            diffusion_std_dev, convergence_fraction, ...
             results_save_path);
     end
     
@@ -146,7 +150,11 @@ for n = 1 : num_jobs
 end
 
 % Make a plot
-plot_apc_error_analysis_results_with_spectral(results_save_paths);
+% if make_plots
+    plot_apc_error_analysis_results(results_save_paths);
+% end
+
+% Calculate convergence
 
 end
 

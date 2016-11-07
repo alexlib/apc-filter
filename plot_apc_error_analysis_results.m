@@ -1,4 +1,4 @@
-function plot_apc_error_analysis_results(results_path_list)
+function plot_apc_error_analysis_results(results_path_list, particle_diameter)
 
 if nargin < 1
    results_path_list{1} =  '/Users/matthewgiarra/Desktop/piv_test_images/poiseuille_diffusion_1.00/error/poiseuille_error_h128_w128_diff_std_1.00_000001_002000.mat';
@@ -6,6 +6,9 @@ if nargin < 1
    results_path_list{3} =  '/Users/matthewgiarra/Desktop/piv_test_images/poiseuille_diffusion_5.00/error/poiseuille_error_h128_w128_diff_std_5.00_000001_002000.mat';
 end
 
+if nargin < 2
+    particle_diameter = 3;
+end
 
 if iscell(results_path_list)
 % Load the results
@@ -17,7 +20,7 @@ else
 end
 
 % Diffusion standard deviations
-d_std = zeros(num_jobs, 1);
+d_ratio = zeros(num_jobs, 1);
 
 % Markers list
 marker_list = {'-', '--', '-', '.-.'};
@@ -46,13 +49,13 @@ for n = 1 : num_jobs
     line_marker = marker_list{n};
     pairs_vect = 1 : length(mean_err_apc);
     
-    % Extract std dev (diffusion) for plotting
-    d_std(n) = diffusion_std;
+    % Std dev ratio
+    d_ratio(n) = diffusion_std / (particle_diameter / 4);
     
     ax1 = subplot(1, 2, 1);
     hold on;
-    plot(pairs_vect, (mean_err_scc_spatial), line_marker, 'color', color_list(1, :), 'linewidth', lw_list(n));
-    plot(pairs_vect, (mean_err_rpc_spatial), line_marker, 'color', color_list(2, :), 'linewidth', lw_list(n));
+    plot(pairs_vect, (mean_err_scc_spatial), line_marker, 'color', color_list(2, :), 'linewidth', lw_list(n));
+    plot(pairs_vect, (mean_err_rpc_spatial), line_marker, 'color', color_list(1, :), 'linewidth', lw_list(n));
     plot(pairs_vect, (mean_err_apc), line_marker, 'color', color_list(3, :), 'linewidth', lw_list(n));
     
     set(gca, 'yscale', 'log');
@@ -75,8 +78,8 @@ for n = 1 : num_jobs
     load(results_paths{n});
     pairs_vect = 1 : length(mean_err_apc);
     
-    plot(pairs_vect, (std_err_scc_spatial), line_marker, 'color', color_list(1, :), 'linewidth', lw_list(n));
-    plot(pairs_vect, (std_err_rpc_spatial), line_marker, 'color', color_list(2, :), 'linewidth', lw_list(n));
+    plot(pairs_vect, (std_err_scc_spatial), line_marker, 'color', color_list(2, :), 'linewidth', lw_list(n));
+    plot(pairs_vect, (std_err_rpc_spatial), line_marker, 'color', color_list(1, :), 'linewidth', lw_list(n));
     plot(pairs_vect, (std_err_apc), line_marker, 'color', color_list(3, :), 'linewidth', lw_list(n));
     set(gca, 'yscale', 'log');
     xlim([0, 1000]); 
@@ -131,9 +134,10 @@ legend_str = {};
 legend_str{1} = '$\textrm{SCC}$';
 legend_str{2} = '$\textrm{RPC}$';
 legend_str{3} = '$\textrm{APC}$';
-legend_str{4} = '$\sigma_{\mathbf{d}} = 1.0$';
-legend_str{5} = '$\sigma_{\mathbf{d}} = 3.0$';
-legend_str{6} = '$\sigma_{\mathbf{d}} = 5.0$';
+
+for n = 1 : num_jobs
+    legend_str{3 + n} = sprintf('$\\sigma_{\\mathbf{d}} / \\sigma_\\tau = %0.1f$', d_ratio(n));
+end
 
 %
 axes(ax1);

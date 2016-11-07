@@ -35,6 +35,9 @@ for n = 1 : num_jobs
     
     % RPC Diameter
     rpc_diameter = JobFile.Parameters.Processing.RpcDiameter;
+    
+    % Load filter fit?
+    load_filter_fit = JobFile.JobOptions.LoadFilters;
 
     % List of image numbers
     image_nums_01 = start_image : skip_image : end_image;
@@ -78,7 +81,7 @@ for n = 1 : num_jobs
         % Do the displacement measurements
         apc_error_analysis_ensemble_from_planes(...
             plane_save_paths, ...
-            vector_save_paths, rpc_diameter);
+            vector_save_paths, rpc_diameter, load_filter_fit);
     end
   
     % Calculate errors?

@@ -108,7 +108,6 @@ for p = 1 : num_pairs
             apc_std_x_pair = [];
             apc_std_y_pair = [];
         end
-        
     end
     
     % Do the peak fitting and APC filtering
@@ -118,8 +117,7 @@ for p = 1 : num_pairs
     % first "region" loop in parallel
     % is slower than running it serially.  
     parfor k = 1 : regions_per_pair
-        
-       
+              
         % Extract the data we need
         %
         % Spatial planes
@@ -165,8 +163,8 @@ for p = 1 : num_pairs
         apc_filt = exp(-x2 ./ (2 * sx_apc^2) - y2 ./ (2 * sy_apc^2));
         
         % Equivalent particle diameters
-        dp_equiv_x = 8 * pi^2 / sx_apc;
-        dp_equiv_y = 8 * pi^2 / sy_apc;
+        dp_equiv_x = equiv_particle_diameter(sx_apc, region_width);
+        dp_equiv_y = equiv_particle_diameter(sy_apc, region_height);
 
         % Save APC standard deviations to output variables
         apc_std_x(k, p) = sx_apc;

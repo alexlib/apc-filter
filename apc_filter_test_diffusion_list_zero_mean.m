@@ -10,6 +10,7 @@ sz_mean = 0;
 
 % diffusion_list = 2;
 diffusion_list = [0, 2, 4];
+diffusion_list = 0;
 
 % Window size
 window_fraction = 1 * [1, 1];
@@ -19,13 +20,13 @@ num_diffusions = length(diffusion_list);
 num_trials = 1;
 
 % Number of corresponding regions
-num_regions_eq = 10;
+num_regions_eq = 100;
 num_regions_neq = 1;
 % 
 
 % Image dimensions
-region_height = 64;
-region_width  = 64;
+region_height = 128;
+region_width  = 128;
 % % Grid step
 gx_range = 0;
 gx_step = 0;
@@ -48,7 +49,7 @@ yv = (1 : region_height) - yc;
 % % Particle stuff
 
 % Standard deviation of particle image diameters
-d_std = 0;
+d_std = 4;
 
 % Mean particle diameter
 d_mean = 3.2;
@@ -64,7 +65,7 @@ sy_range = R * d_mean;
 particle_concentration = 2E-2;
 
 % Image noise
-noise_mean_fract = 0E-2;
+noise_mean_fract = 10E-2;
 noise_std_fract  = 5.0E-2;
 % noise_mean_fract = 0;
 % noise_std_fract  = 0;
@@ -159,9 +160,9 @@ for k = 1 : num_regions_eq
     z_01 = (z_max - z_min) * rand(num_particles, 1) + z_min; 
     
     % Uncomment this for shearing
-    dx = sx_range * (y_01 - yc) /region_height + sx_mean;
-    dy = sy_range * (x_01 - xc) /region_width + sy_mean;
-    dz = zeros(num_particles, 1);
+%     dx = sx_range * (y_01 - yc) /region_height + sx_mean;
+%     dy = sy_range * (x_01 - xc) /region_width + sy_mean;
+%     dz = zeros(num_particles, 1);
 
     % Particle positions (image 2)
     % TLW
@@ -176,7 +177,6 @@ for k = 1 : num_regions_eq
     particle_intensities_01 = exp(-z_01.^2 / (2 * sheet_std_dev_pix^2));
     particle_intensities_02 = exp(-z_02.^2 / (2 * sheet_std_dev_pix^2));
     
-
     % % Generate the images
     %
     % % Generate the first image
