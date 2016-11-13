@@ -1,4 +1,4 @@
-function [APC_STD_Y, APC_STD_X, DX_STD_DEV_Y, DX_STD_DEV_X] = ...
+function [APC_STD_Y, APC_STD_X] = ...
     calculate_apc_filter_ensemble(image_list_01, image_list_02, ...
     grid_y, grid_x, region_size, window_fraction, rpc_diameter, shuffle_range, shuffle_step)
 % APC_STD_Y, APC_STD_X, APC_FILTER] = ...
@@ -105,8 +105,12 @@ if nargin < 7
     rpc_diameter = 3;
 end
 
-% Convert the RPC diameter to the std dev of the filter
-rpc_std_dev = 8 * pi^2 / rpc_diameter;
+% Size of the region
+region_height = region_size(1);
+region_width = region_size(2);
+
+rpc_std_dev_x = sqrt(2) / (pi * rpc_diameter) * region_width;
+rpc_std_dev_y = sqrt(2) / (pi * rpc_diameter) * region_height;
 
 % This is the number of images that will be correlated.
 num_images = length(image_list_01);
@@ -117,10 +121,6 @@ gx = grid_x(:);
 
 % Number of regions
 num_regions = length(gy);
-
-% Size of the region
-region_height = region_size(1);
-region_width = region_size(2);
 
 % Make the Gaussian window
 % and save it for later.
@@ -181,11 +181,6 @@ num_shuffles = length(shuffle_X(:));
 APC_STD_X = zeros(num_regions, 1);
 APC_STD_Y = zeros(num_regions, 1);
 
-% Allocate arrays to hold the
-% displacement PDF vectors.
-DX_STD_DEV_Y = zeros(num_regions, 1);
-DX_STD_DEV_X = zeros(num_regions, 1);
-
 % Allocate array to hold all of the ensemble subregions. 
 % This is a complex array. 
 % This could be large in memory, be careful.
@@ -193,10 +188,6 @@ spectral_correlation_array = ...
     zeros(region_height, region_width, num_regions) + ...
         1i * zeros(region_height, region_width, num_regions);
     
-% ALlocate array to hold the autocorrelations.
-auto_correlation_array = ...
-    zeros(region_height, region_width, num_regions);
-
 % Loop over all the images.
 for p = 1 : num_images
     
@@ -216,111 +207,54 @@ for p = 1 : num_images
         region_02 = extractSubRegions(image_02,...
             [region_height, region_width], gx(k), gy(k));
 
-        
-        % Transforms
+        % Fourier transforms
         F1 = fftshift(fft2(g_win .* (region_01 - mean(region_01(:)))));
         F2 = fftshift(fft2(g_win .* (region_02 - mean(region_02(:)))));
         
-% %       Auto correlations
-        auto_corr_01 = F1 .* conj(F1);
-        auto_corr_02 = F2 .* conj(F2);
-%         
-        auto_corr_mean =  (auto_corr_01 + auto_corr_02) / 2;
-%         
-        auto_correlation_array(:, :, k) = ...
-            auto_correlation_array(:, :, k) + auto_corr_mean;
-        
         % Cross correlation
-%         complex_cross_correlation_current = F1 .* conj(F2) ./ auto_corr_mean;
-        
-%         Cross correlation
         complex_cross_correlation_current = F1 .* conj(F2);
-                
+             
+        % Add the cross correlation to the ensemble array.
         spectral_correlation_array(:, :, k) = ...
             spectral_correlation_array(:, :, k) + complex_cross_correlation_current;
        
 
     end % End (for k = 1 : num_regions)
-    
-%         ca = abs(spectral_correlation_array(:, :, 1));
-%         surf(ca ./ max(ca(:)));
-%         axis square;
-%         xlim([1 region_width]);
-%         ylim([1, region_height]);
-%         zlim([0, 1]);
-%         drawnow;
 
 end % End (for p = 1 : num_images)
 
 % Do the Gaussian fitting
-parfor k = 1 : num_regions
+for k = 1 : num_regions
     
     % Inform the user
     fprintf(1, 'Fitting region %d of %d\n', k, num_regions);
     
     % Extract data from their big arrays
     spectral_corr = spectral_correlation_array(:, :, k);
-    auto_corr = auto_correlation_array(:, :, k);
-    
-    % Do a little median filter
-%     cc_spect_real_filt  = medfilt2(real(spectral_corr), [5, 5]);
-%     cc_spect_imag_filt = medfilt2(imag(spectral_corr), [5, 5]);
-%     cc_spect_filt = cc_spect_real_filt + 1i * cc_spect_imag_filt;
-%     
+ 
     % Fit a Gaussian function to the magnitude
     % of the complex correlation, 
     % which should represent the SNR versus wavenumber.
     [~, sy, sx, ~ , A] =...
-        fit_gaussian_2D(abs(spectral_corr));
-
-%     [~, sy, sx, ~ ,~,  A] =...
-%         fit_gaussian_2D_elliptical(abs(spectral_corr));
-    
-%     subplot(1, 2, 1);
-%     imagesc(abs(spectral_corr));
-%     axis image;
-%     
-%     subplot(1, 2, 2);
-%     imagesc(A); 
-%     axis image;
-%     
-%     drawnow;
-%     pause();
-   
+        fit_gaussian_2D(abs(spectral_corr) ./ max(abs(spectral_corr(:))) );
+       
     % The fit can crap out and come back with
     % a standard deviation of less than 1. This is nonphysical
     % and can be used as a flag.
     if sx <= 1
-        sx = rpc_std_dev;
+        sx = rpc_std_dev_x;
     end
     if sy <= 1
-        sy = rpc_std_dev;
+        sy = rpc_std_dev_y;
     end
     
     % Take the APC diameter as the minimum
     % between the RPC equivalent std dev
     % and the standard deviation diameter.
-    APC_STD_Y(k) = min(rpc_std_dev, sy);
-    APC_STD_X(k) = min(rpc_std_dev, sx);
-    
-%     % Update the std dev guesses
-%     apc_std_x_guess = APC_STD_X(k);
-%     apc_std_y_guess = APC_STD_X(k);
-    
-    % This is the cross correlation divided by the auto correlation
-    cc_div = spectral_corr ./ auto_corr;
- 
-    % Fit a Gaussian function to the remaining magnitude
-    % which should represent the Fourer transform
-    % of the PDF of displacements, centered about the
-    % mean displacement.
-    [~, ft_pdf_std_dev_y, ft_pdf_std_dev_x] =...
-        fit_gaussian_2D(abs(cc_div));
-    
-    % Convert the PDF standard deviations in to pixels per frame.
-    DX_STD_DEV_Y(k) = pi^2 / (ft_pdf_std_dev_y);
-    DX_STD_DEV_X(k) = pi^2 / (ft_pdf_std_dev_x);
-    
+    APC_STD_Y(k) = min(rpc_std_dev_y, sy);
+    APC_STD_X(k) = min(rpc_std_dev_x, sx);
+
+
 end
 
 end

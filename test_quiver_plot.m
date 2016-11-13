@@ -1,39 +1,106 @@
-% test_quiver_plot
-% load('/Users/matthewgiarra/Desktop/piv_test_images/poiseuille_diffusion_3.00/vect/poiseuille_vect_h128_w128_diff_std_3.00_000099_000100.mat');
 
-num_pairs = 800;
+% Diffusion std dev
 diffusion_std_dev = 4.5;
 
-img_01 = 2 * num_pairs  - 1;
-img_02 = img_01 + 1;
+% Convergence criterion
+conv_criterion = 0.05;
 
-data_repo = get_image_repo();
+% Kernel length
+kernel_length = 25;
 
-vect_dir = fullfile(data_repo, sprintf('poiseuille_diffusion_%0.2f', diffusion_std_dev), 'vect');
+% This is the directory in which to save the plot
+plot_save_dir = fullfile('..');
 
-vect_name = sprintf('poiseuille_vect_h128_w128_diff_std_%0.2f_%06d_%06d.mat', diffusion_std_dev, img_01, img_02);
-vect_path = fullfile(vect_dir, vect_name);
-
-load(vect_path);
+% This is the name of the saved plot
+plot_save_name = sprintf('poiseuille_error_h128_w128_diff_std_%0.2f_profile_plot.png', diffusion_std_dev);
 
 
-image_size = 2048 * [1, 1];
-u_max = 10;
+% % % 
 
-tx_apc = tx_pair_apc;
-ty_apc = ty_pair_apc;
+% test_quiver_plot
+image_repo = get_image_repo();
 
-tx_rpc = tx_pair_rpc_spatial;
-ty_rpc = ty_pair_rpc_spatial;
+% Data directory
+data_dir = fullfile(image_repo, sprintf('poiseuille_diffusion_%0.2f', diffusion_std_dev), 'error');
 
-tx_scc = tx_pair_scc_spatial;
-ty_scc = ty_pair_scc_spatial;
+% Data name
+data_name = sprintf('poiseuille_error_h128_w128_diff_std_%0.2f_000001_002000.mat', diffusion_std_dev);
 
-apc_quiver_plots_02(tx_apc, ty_apc, tx_rpc, ty_rpc, tx_scc, ty_scc, gx, gy, image_size, u_max, num_pairs, diffusion_std_dev)
+% Data path
+data_path = fullfile(data_dir, data_name);
 
-save_name = sprintf('profile_plot_diffusion_%0.1f_num_pairs_%d.eps', diffusion_std_dev, num_pairs);
+% Load the data file
+load(data_path);
 
-save_dir = '~/Desktop/profile_plots';
-save_path = fullfile(save_dir, save_name);
+% Calculate SCC residuals
+[conv_iter_scc, diff_x_scc_mean_smoothed, diff_y_scc_mean_smoothed, image_nums] = ...
+    calculate_vector_convergence(tx_err_scc_spatial_mat,...
+    ty_err_scc_spatial_mat, conv_criterion, kernel_length);
+
+% Calculate RPC residuals
+[conv_iter_rpc, diff_x_rpc_mean_smoothed, diff_y_rpc_mean_smoothed] = ...
+    calculate_vector_convergence(tx_err_rpc_spatial_mat,...
+    ty_err_rpc_spatial_mat, conv_criterion, kernel_length);
+
+% Calculate APC residuals
+[conv_iter_apc, diff_x_apc_mean_smoothed, diff_y_apc_mean_smoothed] = ...
+    calculate_vector_convergence(tx_err_apc_mat,...
+    ty_err_apc_mat, conv_criterion, kernel_length);
+
+% Iteration numbers to plot
+iteration_numbers = [10, conv_iter_apc, conv_iter_rpc, conv_iter_scc];
+
+% Diffusion ratio
+diffusion_ratio = diffusion_std_dev / (particle_diameter / 4);
+
+% Make the plots
+draw_apc_quiver_plots(tx_scc_spatial_mat, ty_scc_spatial_mat, ...
+                    tx_rpc_spatial_mat, ty_rpc_spatial_mat, ...
+                    tx_apc_mat, ty_apc_mat, ...
+                    grid_x, grid_y, image_size, dx_max, ...
+                    iteration_numbers, diffusion_ratio);
+
+                
+% This is the path to the saved plot
+plot_save_path = fullfile(plot_save_dir, plot_save_name);
+export_fig('-r300', plot_save_path);
+                
+% % Plot save name
+% save_name = sprintf('profile_plot_diffusion_%0.1f_num_pairs_%d.eps', diffusion_std_dev, num_pairs);
 % 
+% % Plot save directory
+% save_dir = '~/Desktop/profile_plots';
+% save_path = fullfile(save_dir, save_name);
+
 % print(1, '-depsc', save_path);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

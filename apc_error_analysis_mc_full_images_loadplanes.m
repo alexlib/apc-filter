@@ -56,8 +56,11 @@ for n = 1 : num_jobs
     solution_file = load(solution_file_path);
 
     % True average particle diameter in pixels.
-    rpc_diameter = solution_file.JobFile.Parameters.Particles.Diameter.Mean;
+    particle_diameter = solution_file.JobFile.Parameters.Particles.Diameter.Mean;
 
+    % Set the RPC diameter to be the true mean particle diameter
+    rpc_diameter = particle_diameter;
+    
     % True mean horizontal displacement
     % of the Poiseuille displacement profile
     tx_mean_true = solution_file.JobFile.Parameters.Displacement.Mean.X;
@@ -141,7 +144,7 @@ for n = 1 : num_jobs
             vector_save_paths, ...
             image_size, ...
             tx_max_true, ...
-            diffusion_std_dev, convergence_fraction, ...
+            diffusion_std_dev, particle_diameter, ...
             results_save_path);
     end
     

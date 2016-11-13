@@ -57,17 +57,17 @@ fSize = 16;
 % trailer_b = '';
 
 % image_dir = fullfile(get_image_repo, 'piv_challenge', '2014', 'piv_challenge_2014_A', 'raw');
-image_dir = '/Users/matthewgiarra/Documents/School/VT/Research/Aether/piv_test_images/piv_challenge/2014/piv_challenge_2014_A/raw';
+image_dir = '/Users/matthewgiarra/Documents/School/VT/Research/Aether/piv_test_images/piv_challenge/2014/piv_challenge_2014_A/proc/min_sub';
 image_base_name = 'A_';
 num_digits = 5;
 image_ext = '.tif';
 start_image = 300;
-end_image = 399;
+end_image = 309;
 skip_image = 1;
 c_step = 0;
 trailer_a = '_a';
 trailer_b = '_b';
-mask_path = fullfile(image_dir, '..', 'mask', 'A_mask.tif');
+mask_path = fullfile(image_dir, '..', '..', 'mask', 'A_mask.tif');
 
 % image_dir = fullfile(get_image_repo, 'confocal', '100nm_resonant_30uL_90deg_1450um', 'tif');
 % image_base_name = '100nm_resonant_30uL_90deg_1450um_';
@@ -85,11 +85,11 @@ mask_path = fullfile(image_dir, '..', 'mask', 'A_mask.tif');
 
 
 % Number of images to process after calculating the filter.
-num_images_correlate = 100;
+num_images_correlate = 10;
 
 % Region sizes
 region_height = 48;
-region_width  = 256;
+region_width  = 192;
 
 % Window fraction
 window_fraction = 0.5;
@@ -272,22 +272,28 @@ for n = 1 : num_images_correlate
         % RPC plane
         rpc_plane = abs(fftshift(ifft2(fftshift(phaseOnlyFilter(cc_spect) .* rpc_filter))));
         
+        
+        
         % Ensemble planes
         scc_ens(:, :, k) = scc_ens(:, :, k) + scc_plane;
         rpc_ens(:, :, k) = rpc_ens(:, :, k) + rpc_plane;
         spc_ens(:, :, k) = spc_ens(:, :, k) + cc_spect;
         
+        
+        
         % APC plane
-        apc_plane = abs(fftshift(ifft2(fftshift(phaseOnlyFilter(spc_ens(:, :, k)) .* apc_filter))));
+        apc_plane = abs(fftshift(ifft2(fftshift(phaseOnlyFilter(cc_spect) .* apc_filter))));
+        
+        
                 
-        [tx_scc(k, n), ty_scc(k, n)] = subpixel(scc_ens(:, :, k),...
+        [tx_scc(k, n), ty_scc(k, n)] = subpixel(scc_plane,...
         region_width, region_height, subpix_weights, ...
             1, 0, rpc_diameter * [1, 1]);
  
-        [tx_rpc(k, n), ty_rpc(k, n)] = subpixel(rpc_ens(:, :, k),...
+        [tx_rpc(k, n), ty_rpc(k, n)] = subpixel(rpc_plane,...
             region_width, region_height, subpix_weights, ...
             1, 0, rpc_diameter * [1, 1]);
-         
+%           
         [tx_apc(k, n), ty_apc(k, n)] = subpixel(apc_plane,...
             region_width, region_height, subpix_weights, ...
             1, 0, [dp_equiv_apc_x, dp_equiv_apc_y]); 
@@ -296,8 +302,57 @@ for n = 1 : num_images_correlate
         
     end
     
+
+
+end
+
+
+
+% Do the APC fits and calculate the displacements
+parfor k = 1 : num_regions
+    [tx_ens_scc(k), ty_ens_scc(k)] = subpixel(scc_ens(:, :, k),...
+        region_width, region_height, subpix_weights, ...
+            1, 0, rpc_diameter * [1, 1]);
+        
+    [tx_ens_rpc(k), ty_ens_rpc(k)] = subpixel(rpc_ens(:, :, k),...
+        region_width, region_height, subpix_weights, ...
+            1, 0, rpc_diameter * [1, 1]);
+        
+    % APC diameters
+    sx_apc = APC_STD_X(k);
+    sy_apc = APC_STD_Y(k);
+    dp_equiv_apc_x = equiv_particle_diameter(sx_apc, region_width);
+    dp_equiv_apc_y = equiv_particle_diameter(sy_apc, region_height);
     
     
+     % Make the spectral filter
+    apc_filter = exp(-x.^2 / (2 * sx_apc^2) - y.^2 / (2 * sy_apc^2));    
+    % Filter and invert the ensemble spectral plane
+    apc_plane = abs(fftshift(ifft2(fftshift(phaseOnlyFilter(spc_ens(:, :, k)) .* apc_filter))));
+    
+    [tx_ens_apc(k), ty_ens_apc(k)] = subpixel(apc_plane,...
+            region_width, region_height, subpix_weights, ...
+            1, 0, [dp_equiv_apc_x, dp_equiv_apc_y]); 
+    
+end
+
+% % Shape some grids
+% nx = length(unique(grid_x));
+% ny = length(unique(grid_y));
+% 
+apc_std = sqrt(APC_STD_Y.^2 + APC_STD_X.^2);
+
+% S = reshape(apc_std, [ny, nx]);
+% apc_x_mat = reshape(APC_STD_X, [ny, nx]); 
+% apc_y_mat = reshape(APC_STD_Y, [ny, nx]);
+
+% tx_ens_scc_mat = reshape(tx_ens_scc, [ny, nx]);
+% ty_ens_scc_mat = reshape(ty_ens_scc, [ny, nx]);
+% tx_ens_rpc_mat = reshape(tx_ens_rpc, [ny, nx]);
+% ty_ens_rpc_mat = reshape(ty_ens_rpc, [ny, nx]);
+% tx_ens_apc_mat = reshape(tx_ens_apc, [ny, nx]);
+% ty_ens_apc_mat = reshape(ty_ens_apc, [ny, nx]);
+
 % Plotting garbage
 % Skip vectors
 Skip = 2;
@@ -307,14 +362,14 @@ c_max = 45;
 figure(2);
 subplot(3, 2, 1);
 quiver(grid_x(1 : Skip : end), grid_y(1 : Skip : end), ...
-    Scale * tx_scc(1 : Skip : end, n), ...
-    Scale * ty_scc(1 : Skip : end, n), ...
+    Scale * tx_ens_scc(1 : Skip : end), ...
+    Scale * ty_ens_scc(1 : Skip : end), ...
     0, 'b', 'linewidth', lw);
 axis image
 xlim([1, image_width]);
 ylim([1, image_height]);
 set(gca, 'ydir', 'reverse');
-title(sprintf('$\\textrm{SCC}, \\, %d \\,\\, \\textrm{pairs}$', n), 'FontSize', fSize, 'interpreter', 'latex');
+title(sprintf('$\\textrm{SCC}, \\, %d \\,\\, \\textrm{pairs}$', num_images_correlate), 'FontSize', fSize, 'interpreter', 'latex');
 set(gca, 'FontSize', fSize)
 box on
 
@@ -322,29 +377,29 @@ box on
 subplot(3, 2, 3);
 
 quiver(grid_x(1 : Skip : end), grid_y(1 : Skip : end), ...
-    Scale * tx_rpc(1 : Skip : end, n), ...
-    Scale * ty_rpc(1 : Skip : end, n), ...
+    Scale * tx_ens_rpc(1 : Skip : end), ...
+    Scale * ty_ens_rpc(1 : Skip : end), ...
     0, 'r', 'linewidth', lw);
 axis image
 xlim([1, image_width]);
 ylim([1, image_height]);
 set(gca, 'ydir', 'reverse');
-title(sprintf('$\\textrm{RPC}, d_\\mathrm{RPC} = %0.1f,\\, %d  \\,\\, \\textrm{pairs}$', rpc_diameter, n), 'FontSize', fSize, 'interpreter', 'latex')
+title(sprintf('$\\textrm{RPC}, d_\\mathrm{RPC} = %0.1f,\\, %d  \\,\\, \\textrm{pairs}$', rpc_diameter, num_images_correlate), 'FontSize', fSize, 'interpreter', 'latex')
 set(gca, 'FontSize', fSize)
 box on
 
 
 subplot(3, 2, 5 ,'FontSize', fSize);
 quiver(grid_x(1 : Skip : end), grid_y(1 : Skip : end), ...
-    Scale * tx_apc(1 : Skip : end, n), ...
-    Scale * ty_apc(1 : Skip : end, n), ...
+    Scale * tx_ens_apc(1 : Skip : end), ...
+    Scale * ty_ens_apc(1 : Skip : end), ...
     0, 'k', 'linewidth', lw);
 axis image
 xlim([1, image_width]);
 ylim([1, image_height]);
 set(gca, 'ydir', 'reverse');
 drawnow;
-title(sprintf('$\\textrm{APC}, \\, %d \\,\\, \\textrm{pairs}$', n), 'FontSize', fSize, 'interpreter', 'latex')
+title(sprintf('$\\textrm{APC}, \\, %d \\,\\, \\textrm{pairs}$', num_images_correlate), 'FontSize', fSize, 'interpreter', 'latex')
 set(gca, 'FontSize', fSize)
 box on
 
@@ -358,27 +413,17 @@ box on
 gx_full = gx_full_full + grid_shift_x;
 gy_full = gy_full_full + grid_shift_y;
 
-[~, sy_rpc, sx_rpc] = fit_gaussian_2D(rpc_filter);
-
 tx_scc_full = zeros(size(gx_full));
 tx_rpc_full = zeros(size(gx_full));
 tx_apc_full = zeros(size(gx_full));
-s_apc_full = zeros(size(gx_full));
-
-
-s_apc_mag = sqrt(APC_STD_X.^2 + APC_STD_Y.^2);
-s_rpc_mag = sqrt(sx_rpc.^2 + sy_rpc.^2); 
-
-s_apc = s_apc_mag ./ s_rpc_mag;
 
 for k = 1 : length(grid_x)
     
     ind = find(gx_full == grid_x(k) & gy_full == grid_y(k));
     
-    tx_scc_full(ind) = tx_scc(k, n);
-    tx_rpc_full(ind) = tx_rpc(k, n);
-    tx_apc_full(ind) = tx_apc(k, n);
-    s_apc_full(ind) = s_apc(k);
+    tx_scc_full(ind) = tx_ens_scc(k);
+    tx_rpc_full(ind) = tx_ens_rpc(k);
+    tx_apc_full(ind) = tx_ens_apc(k);
 end
 
 nx = length(unique(gx_full));
@@ -386,7 +431,7 @@ ny = length(unique(gy_full));
 tx_scc_full_mat = reshape(tx_scc_full, [ny, nx]);
 tx_rpc_full_mat = reshape(tx_rpc_full, [ny, nx]);
 tx_apc_full_mat = reshape(tx_apc_full, [ny, nx]);
-s_apc_full_mat = reshape(s_apc_full, [ny, nx]);
+
 
 subplot(3, 2, 2);
 imagesc(gx_full, gy_full, ...
@@ -395,7 +440,7 @@ axis image
 xlim([1, image_width]);
 ylim([1, image_height]);
 set(gca, 'ydir', 'reverse');
-title(sprintf('$\\Delta x \\left( \\textrm{SCC} \\right), \\, \\, %d \\,\\, \\textrm{pairs}$', n), 'FontSize', fSize, 'interpreter', 'latex');
+title(sprintf('$\\Delta x \\left( \\textrm{SCC} \\right), \\, \\, %d \\,\\, \\textrm{pairs}$', num_images_correlate), 'FontSize', fSize, 'interpreter', 'latex');
 set(gca, 'FontSize', fSize)
 caxis([0, c_max]); 
 c = get(gca, 'position');
@@ -412,7 +457,7 @@ axis image
 xlim([1, image_width]);
 ylim([1, image_height]);
 set(gca, 'ydir', 'reverse');
-title(sprintf('$\\Delta x \\, \\, \\left(\\textrm{RPC}, d_\\mathrm{RPC} = %0.1f \\right),\\, %d  \\,\\, \\textrm{pairs}$', rpc_diameter, n), 'FontSize', fSize, 'interpreter', 'latex')
+title(sprintf('$\\Delta x \\, \\, \\left(\\textrm{RPC}, d_\\mathrm{RPC} = %0.1f \\right),\\, %d  \\,\\, \\textrm{pairs}$', rpc_diameter, num_images_correlate), 'FontSize', fSize, 'interpreter', 'latex')
 set(gca, 'FontSize', fSize)
 caxis([0, c_max]); 
 c = get(gca, 'position');
@@ -430,7 +475,7 @@ xlim([1, image_width]);
 ylim([1, image_height]);
 set(gca, 'ydir', 'reverse');
 drawnow;
-title(sprintf('$\\Delta x \\,\\, \\left(\\textrm{APC}\\right), \\, %d \\,\\, \\textrm{pairs}$', n), 'FontSize', fSize, 'interpreter', 'latex')
+title(sprintf('$\\Delta x \\,\\, \\left(\\textrm{APC}\\right), \\, %d \\,\\, \\textrm{pairs}$', num_images_correlate), 'FontSize', fSize, 'interpreter', 'latex')
 set(gca, 'FontSize', fSize)
 caxis([0, c_max]); 
 c = get(gca, 'position');
@@ -440,49 +485,6 @@ set(gca, 'position', c);
 
 set(gcf, 'color', 'white');
 
-
-
 set(gcf, 'outerposition', [ -1696         214        1293        1054]);
-
-
-file_path = sprintf('~/Desktop/plots/plot_%05d.png', n);
-
-pause(0.01);
-
-export_fig('-r150', file_path)
-    
-
-
-end
-
-
-
-% % Do the APC fits and calculate the displacements
-% parfor k = 1 : num_regions
-%     [tx_ens_scc(k), ty_ens_scc(k)] = subpixel(scc_ens(:, :, k),...
-%         region_width, region_height, subpix_weights, ...
-%             1, 0, rpc_diameter * [1, 1]);
-%         
-%     [tx_ens_rpc(k), ty_ens_rpc(k)] = subpixel(rpc_ens(:, :, k),...
-%         region_width, region_height, subpix_weights, ...
-%             1, 0, rpc_diameter * [1, 1]);
-%         
-%     % APC diameters
-%     sx_apc = APC_STD_X(k);
-%     sy_apc = APC_STD_Y(k);
-%     dp_equiv_apc_x = equiv_particle_diameter(sx_apc, region_width);
-%     dp_equiv_apc_y = equiv_particle_diameter(sy_apc, region_height);
-%     
-%     
-%      % Make the spectral filter
-%     apc_filter = exp(-x.^2 / (2 * sx_apc^2) - y.^2 / (2 * sy_apc^2));    
-%     % Filter and invert the ensemble spectral plane
-%     apc_plane = abs(fftshift(ifft2(fftshift(phaseOnlyFilter(spc_ens(:, :, k)) .* apc_filter))));
-%     
-%     [tx_ens_apc(k), ty_ens_apc(k)] = subpixel(apc_plane,...
-%             region_width, region_height, subpix_weights, ...
-%             1, 0, [dp_equiv_apc_x, dp_equiv_apc_y]); 
-%     
-% end
 
 

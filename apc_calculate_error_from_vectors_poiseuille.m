@@ -2,7 +2,7 @@ function apc_calculate_error_from_vectors_poiseuille(...
     vector_save_paths, ...
        image_size, ...
        dx_max,...
-       diffusion_std, convergence_fraction,...
+       diffusion_std, particle_diameter,...
        results_save_path)
 
 % This is the number of images that were correlated
@@ -17,16 +17,20 @@ t = tic;
 % Load the first vector path to get the grid
 load(vector_save_paths{1});
 
+% Rename grid
+grid_y = gy;
+grid_x = gx;
+
 % Calculate the true solution at the grid points
 % Center of the image in the height direction
 yc = image_height / 2;
     
 % Radial coordinate in the height direction
-r = abs((gy - yc) / (image_height/2));
+r = abs((grid_y - yc) / (image_height/2));
 
 % Number of points
-ny = length(unique(gy));
-nx = length(unique(gx));
+ny = length(unique(grid_y));
+nx = length(unique(grid_x));
 regions_per_pair = ny * nx;
 
 % Max radius for calculating error
@@ -36,7 +40,6 @@ r_max = 1;
 tx_true_full = - dx_max * (r.^2 - 1);
 tx_true = tx_true_full(r < r_max);
 ty_true = zeros(size(tx_true));
-
 
 % Vectors to hold the mean errors
 mean_err_scc_spatial = zeros(num_pairs, 1);
@@ -58,6 +61,34 @@ apc_sy_mean = zeros(regions_per_pair, 1);
 apc_sx_std = zeros(regions_per_pair, 1);
 apc_sy_std = zeros(regions_per_pair, 1);
 
+% Error matrices
+tx_err_scc_spatial_mat = zeros(regions_per_pair, num_pairs);
+ty_err_scc_spatial_mat = zeros(regions_per_pair, num_pairs);
+
+tx_err_rpc_spatial_mat = zeros(regions_per_pair, num_pairs);
+ty_err_rpc_spatial_mat = zeros(regions_per_pair, num_pairs);
+
+tx_err_scc_spectral_mat = zeros(regions_per_pair, num_pairs);
+ty_err_scc_spectral_mat = zeros(regions_per_pair, num_pairs);
+
+tx_err_rpc_spectral_mat = zeros(regions_per_pair, num_pairs);
+ty_err_rpc_spectral_mat = zeros(regions_per_pair, num_pairs);
+
+tx_err_apc_mat = zeros(regions_per_pair, num_pairs);
+ty_err_apc_mat = zeros(regions_per_pair, num_pairs);
+
+
+% Displacement matrices
+tx_scc_spatial_mat = zeros(regions_per_pair, num_pairs);
+ty_scc_spatial_mat = zeros(regions_per_pair, num_pairs);
+tx_rpc_spatial_mat = zeros(regions_per_pair, num_pairs);
+ty_rpc_spatial_mat = zeros(regions_per_pair, num_pairs);
+tx_scc_spectral_mat = zeros(regions_per_pair, num_pairs);
+ty_scc_spectral_mat = zeros(regions_per_pair, num_pairs);
+tx_rpc_spectral_mat = zeros(regions_per_pair, num_pairs);
+ty_rpc_spectral_mat = zeros(regions_per_pair, num_pairs);
+tx_apc_mat = zeros(regions_per_pair, num_pairs);
+ty_apc_mat = zeros(regions_per_pair, num_pairs);
 
 % Loop over the images
 for p = 1 : num_pairs
@@ -83,6 +114,33 @@ for p = 1 : num_pairs
     % Velocity components (APC spectral ensembles)
     tx_apc = 1 * tx_pair_apc(r < r_max);
     ty_apc = 1 * ty_pair_apc(r < r_max);
+    
+    % Save the displacements to the saved arrays
+    tx_scc_spatial_mat(:, p) = tx_scc_spatial;
+    ty_scc_spatial_mat(:, p) = ty_scc_spatial;
+    tx_rpc_spatial_mat(:, p) = tx_rpc_spatial;
+    ty_rpc_spatial_mat(:, p) = ty_rpc_spatial;
+    tx_scc_spectral_mat(:, p) = tx_scc_spectral;
+    ty_scc_spectral_mat(:, p) = ty_scc_spectral;
+    tx_rpc_spectral_mat(:, p) = tx_rpc_spectral;
+    ty_rpc_spectral_mat(:, p) = ty_rpc_spectral;
+    tx_apc_mat(:, p) = tx_apc;
+    ty_apc_mat(:, p) = ty_apc;
+    
+    % Save all the errors to matrices
+    tx_err_scc_spatial_mat(:, p) = tx_true - tx_pair_scc_spatial;
+    ty_err_scc_spatial_mat(:, p) = ty_true - ty_pair_scc_spatial;
+    tx_err_rpc_spatial_mat(:, p) = tx_true - tx_pair_rpc_spatial;
+    ty_err_rpc_spatial_mat(:, p) = ty_true - ty_pair_rpc_spatial;
+    
+    tx_err_scc_spectral_mat(:, p) = tx_true - tx_pair_scc_spectral;
+    ty_err_scc_spectral_mat(:, p) = ty_true - ty_pair_scc_spectral;
+    tx_err_rpc_spectral_mat(:, p) = tx_true - tx_pair_rpc_spectral;
+    ty_err_rpc_spectral_mat(:, p) = ty_true - ty_pair_rpc_spectral;
+    tx_err_apc_mat(:, p) = tx_true - tx_pair_apc;
+    ty_err_apc_mat(:, p) = ty_true - ty_pair_apc;
+    
+
     
     % APC filter standard deviations
     apc_sx = apc_std_x_pair(r < r_max);
@@ -117,7 +175,7 @@ for p = 1 : num_pairs
     mean_err_scc_spectral(p) = mean(err_mag_scc_spectral);
     mean_err_rpc_spectral(p) = mean(err_mag_rpc_spectral);
     mean_err_apc(p) = mean(err_mag_apc);
-    
+        
     % Standard deviations of error
     std_err_scc_spatial(p) = std(err_mag_scc_spatial);
     std_err_rpc_spatial(p) = std(err_mag_rpc_spatial);
@@ -139,19 +197,32 @@ tf = toc(t);
 % Save the results
 save(results_save_path, ...
     'mean_err_scc_spatial', 'std_err_scc_spatial', ...
-    'mean_err_rpc_spatial', 'std_err_rpc_spatial', ...
+    'mean_err_rpc_spatial',  'std_err_rpc_spatial', ...
     'mean_err_scc_spectral', 'std_err_scc_spectral', ...
     'mean_err_rpc_spectral', 'std_err_rpc_spectral', ...
     'mean_err_apc', 'std_err_apc', ...
+    ...
+    'tx_err_scc_spatial_mat', 'ty_err_scc_spatial_mat', ...
+    'tx_err_rpc_spatial_mat', 'ty_err_rpc_spatial_mat', ...
+    'tx_err_scc_spectral_mat', 'ty_err_scc_spectral_mat', ...
+    'tx_err_rpc_spectral_mat', 'ty_err_rpc_spectral_mat', ...
+    'tx_err_apc_mat', 'ty_err_apc_mat', ...
+    ...
+    'tx_scc_spatial_mat','ty_scc_spatial_mat', ...
+    'tx_rpc_spatial_mat','ty_rpc_spatial_mat', ...
+    'tx_scc_spectral_mat','ty_scc_spectral_mat', ...
+    'tx_rpc_spectral_mat','ty_rpc_spectral_mat', ...
+    'tx_apc_mat','ty_apc_mat', ...
+    ...
     'apc_sx_mean', 'apc_sx_std', ...
     'apc_sy_mean', 'apc_sy_std', ...
-    'diffusion_std');
+    'diffusion_std', 'particle_diameter', ...
+    'grid_y', 'grid_x', ...
+    'dx_max', 'image_size');
 
 % Print elapsed time
 fprintf(1, 'Elapsed time: %d seconds for %d image pairs.\n', tf, num_pairs);
 fprintf(1, '%0.1f seconds per image.\n\n', tf / num_pairs);
-
-
 
 
 end
