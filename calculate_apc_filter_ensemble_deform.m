@@ -1,7 +1,7 @@
 function [APC_STD_Y, APC_STD_X] = ...
-    calculate_apc_filter_ensemble(image_list_01, image_list_02, ...
+    calculate_apc_filter_ensemble_deform(image_list_01, image_list_02, ...
     grid_y, grid_x,...
-    region_size, window_fraction, rpc_diameter, MASK)
+    region_size, window_fraction, rpc_diameter, MASK, DEFORM_PARAMS)
 % APC_STD_Y, APC_STD_X, APC_FILTER] = ...
 %     calculate_apc_filter_from_image_pair(image_01, image_02, ...
 %     grid_y, grid_x, region_size, window_fraction, shuffle_range, shuffle_step)
@@ -89,6 +89,16 @@ function [APC_STD_Y, APC_STD_X] = ...
 %     gridImage; subpixel, fit_gaussian_2D, extractSubRegions
 % 
 
+% Default to no deform
+if nargin < 9
+    DEFORM_PARAMS = [];
+end
+
+% Default to no mask
+if nargin < 8
+    MASK = [];
+end;
+
 % Default to rpc diameter of 3 pixels
 if nargin < 7
     rpc_diameter = 3;
@@ -134,7 +144,7 @@ spectral_correlation_array = ...
         1i * zeros(region_height, region_width, num_regions);
     
 % Make a default mask if none was specified
-if nargin < 8
+if isempty(MASK)
     % Load the first image to measure its size
     image_01 = double(imread(image_list_01{1}));
 
@@ -152,8 +162,31 @@ for p = 1 : num_images
     fprintf(1, 'On image %d of %d\n', p, num_images);
 
     % Load the images from disk.
-    image_01 = double(imread(image_list_01{p}));
-    image_02 = double(imread(image_list_02{p}));
+    image_raw_01 = double(imread(image_list_01{p}));
+    image_raw_02 = double(imread(image_list_02{p}));
+    
+    % Deform the images if specified
+    if ~isempty(DEFORM_PARAMS)
+        gx_source = DEFORM_PARAMS.Grid.X;
+        gy_source = DEFORM_PARAMS.Grid.Y;
+        u_source  = DEFORM_PARAMS.Displacement.X;
+        v_source  = DEFORM_PARAMS.Displacement.Y;
+        deform_method = DEFORM_PARAMS.Method;
+        
+        % Inform user
+        fprintf(1, 'Deforming images for APC calculation...\n');
+        
+        % Deform the image pair
+        [image_01, image_02] = deform_image_pair(...
+            image_raw_01, image_raw_02, ...
+            gx_source, gy_source, ...
+            u_source, v_source,...
+            deform_method);      
+    else
+        % If no deform specified, use the original images.
+        image_01 = image_raw_01;
+        image_02 = image_raw_02;
+    end
 
 % Loop over all the interrogation regions.
     for k = 1 : num_regions

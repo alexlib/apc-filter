@@ -62,7 +62,6 @@ image_base_name = 'A_';
 num_digits = 5;
 image_ext = '.tif';
 start_image = 300;
-end_image = 399;
 skip_image = 1;
 c_step = 0;
 trailer_a = '_a';
@@ -83,37 +82,73 @@ mask_path = fullfile(image_dir, '..', 'mask', 'A_mask.tif');
 % mask_path = '~/Desktop/A_mask.tif';
 % grid_mask = double(imread(mask_path));
 
+% Number of images to use to calculate the APC filter
+num_images_filter = 20;
 
 % Number of images to process after calculating the filter.
-num_images_correlate = 100;
+num_images_correlate = 20;
 
-% Region sizes
-region_height = 48;
-region_width  = 256;
-
-% Window fraction
-window_fraction = 0.5;
-
-% Grid spacing
-grid_spacing_y = 24;
-grid_spacing_x = 48;
-
-% Shuffle
-shuffle_range = [0, 0];
-shuffle_step = [0, 0];
+% Number of Passes
+num_passes_spec = 2;
 
 % RPC diameter
 rpc_diameter = 8;
 
-% Region size vector
-region_size = [region_height, region_width];
+% Smoothing kernel diameter
+smoothing_kernel_diameter = 7;
 
-% LIst of image numbers
-image_nums_01 = start_image : skip_image : end_image;
-image_nums_02 = image_nums_01 + c_step;
+% Smoothing kernel standard deviation
+smoothing_kernel_std = 1;
 
-% Number of images
-num_pairs = length(image_nums_01);
+% Faux job file
+Parameters.Processing(1).Region.Height = 48;
+Parameters.Processing(1).Region.Width = 256;
+Parameters.Processing(1).Grid.Spacing.Y = 24;
+Parameters.Processing(1).Grid.Spacing.X = 48;
+Parameters.Processing(1).Grid.Shift.Y = -16;
+Parameters.Processing(1).Grid.Shift.X = 0;
+Parameters.Processing(1).Window.Fraction = 0.5;
+
+% Faux job file
+Parameters.Processing(2).Region.Height = 32;
+Parameters.Processing(2).Region.Width = 32;
+Parameters.Processing(2).Grid.Spacing.Y = 16;
+Parameters.Processing(2).Grid.Spacing.X = 16;
+Parameters.Processing(2).Grid.Shift.Y = -16;
+Parameters.Processing(2).Grid.Shift.X = 0;
+Parameters.Processing(2).Window.Fraction = 0.5;
+
+% Number of iterations
+num_iterations = min(num_passes_spec, length(Parameters.Processing));
+
+
+
+
+
+
+
+% Grid mask
+grid_mask = double(imread(mask_path));
+
+% Final image for filtering
+end_image_filter = start_image + num_images_filter - 1;
+
+% Final image
+end_image_correlate = start_image + num_images_correlate - 1;
+
+% List of image numbers for the ensemble
+image_nums_correlate_01 = start_image : skip_image : end_image_correlate;
+image_nums_correlate_02 = image_nums_correlate_01 + c_step;
+
+% List of image numbers for the filter calculation
+image_nums_filter_01 = start_image : skip_image : end_image_filter;
+image_nums_filter_02 = image_nums_filter_01 + c_step;
+
+% Number of images for filtering
+num_pairs_filter = length(image_nums_filter_01);
+
+% Number of images for correlating
+num_pairs_correlate = length(image_nums_correlate_01);
 
 % Declare the image list
 image_list_01 = {''};
@@ -122,131 +157,196 @@ image_list_02 = {''};
 % Digit string
 dig_str = ['%0' num2str(num_digits) 'd'];
 
-% Form the image path lists
-for k = 1 : num_pairs
-   image_name_01 = [image_base_name num2str(image_nums_01(k), dig_str) trailer_a image_ext];
-   image_name_02 = [image_base_name num2str(image_nums_02(k), dig_str) trailer_b image_ext];
+% Form the image path lists for the filter calculation
+for k = 1 : num_pairs_filter
     
-   image_list_01{k} = fullfile(image_dir, image_name_01);
-   image_list_02{k} = fullfile(image_dir, image_name_02);
+   % Names of the images
+   image_name_01 = [image_base_name num2str(image_nums_filter_01(k), dig_str) trailer_a image_ext];
+   image_name_02 = [image_base_name num2str(image_nums_filter_02(k), dig_str) trailer_b image_ext];
+    
+   % List of paths to the images
+   image_list_filter_01{k} = fullfile(image_dir, image_name_01);
+   image_list_filter_02{k} = fullfile(image_dir, image_name_02);
+    
+end
+
+% Paths to the images to correlate
+for k = 1 : num_pairs_correlate
+    
+   % Names of the images
+   image_name_01 = [image_base_name num2str(image_nums_correlate_01(k), dig_str) trailer_a image_ext];
+   image_name_02 = [image_base_name num2str(image_nums_correlate_02(k), dig_str) trailer_b image_ext];
+    
+   % List of paths to the images
+   image_list_correlate_01{k} = fullfile(image_dir, image_name_01);
+   image_list_correlate_02{k} = fullfile(image_dir, image_name_02);
     
 end
 
 % Load the first image and get its size
-[image_height, image_width] = size(double(imread(image_list_01{1})));
+[image_height, image_width] = size(double(imread(image_list_filter_01{1})));
+
+
+
+
+
+
+
+
+
+for p = 1 : num_iterations
+    
+    
+end
+
+% Region sizes
+region_height = Parameters.Processing(p).Region.Height;
+region_width  = Parameters.Processing(p).Region.Width;
+
+% Window fraction
+window_fraction = Parameters.Processing(p).Window.Fraction;
+
+% Grid spacing
+grid_spacing_y = Parameters.Processing(p).Grid.Spacing.Y;
+grid_spacing_x = Parameters.Processing(p).Grid.Spacing.X;
+
+% Grid shift
+grid_shift_y = Parameters.Processing(p).Grid.Shift.Y;
+grid_shift_x = Parameters.Processing(p).Grid.Shift.X;
+
+% =======
+
+% Region size vector
+region_size = [region_height, region_width];
 
 % Grid the images
 grid_spacing = [grid_spacing_y, grid_spacing_x];
 grid_buffer_x = region_width/2  * [1, 1];
 grid_buffer_y = region_height/2 * [1, 1];
 
-% Grid buffer
-grid_buffer_x = 0 * [1, 1];
-grid_buffer_y = 0 * [1, 1];
-
-% Grid shift
-grid_shift_x = 0;
-grid_shift_y = -16;
-
-% Grid mask
-grid_mask = double(imread(mask_path));
-
-% Grid the image
-[gx, gy] = gridImage([image_height, image_width],...
-    grid_spacing, grid_buffer_y, grid_buffer_x, grid_mask);
-
-grid_x = gx + grid_shift_x;
-grid_y = gy + grid_shift_y;
-
-figure(1);
-image_01 = imread(image_list_01{1});
-imagesc(image_01); axis image; colormap gray;
-caxis([2^7, 2^8]);
-hold on;
-plot(grid_x, grid_y, 'oy', 'markerfacecolor', 'y');
-hold off
-drawnow;
-
-% % Number of grid points in each direction
-% nx = length(unique(grid_x));
-% ny = length(unique(grid_y));
-% 
-
-
-% grid_x = 1465; grid_y = 995;
-
-% Calculate the APC filter
-[APC_STD_Y, APC_STD_X, disp_pdf_std_dev_y, disp_pdf_std_dev_x] = ...
-    calculate_apc_filter_ensemble(image_list_01, image_list_02, ...
-    grid_y, grid_x, region_size,...
-    window_fraction, rpc_diameter);
-
-% Vectors for region coordinates
-xv = (1 : region_width) - fourier_zero(region_width);
-yv = (1 : region_height) - fourier_zero(region_height);
-
-% Region coordinates
-[x, y] = meshgrid(xv, yv);
-
 % Calculate the RPC filter size
-rpc_filter = spectralEnergyFilter(region_height, region_width, rpc_diameter);
+rpc_filter = spectralEnergyFilter(...
+    region_height, region_width, rpc_diameter);
 
 % Spatial window
-g_win = gaussianWindowFilter([region_height, region_width], window_fraction, 'fraction');
+g_win = gaussianWindowFilter(...
+    [region_height, region_width], window_fraction, 'fraction');
+
+% Grid the image
+% DO not put the mask in here
+% This is the fixed grid.
+[grid_x, grid_y] = gridImage([image_height, image_width],...
+    grid_spacing, grid_buffer_y, grid_buffer_x, grid_shift_y, grid_shift_x);
+
+% Number of x and y grid points
+nx = length(unique(grid_x(:)));
+ny = length(unique(grid_y(:)));
+
+% Number of regions
+num_regions = length(grid_x(:));
+
+% Allocate arrays for the ensemble
+% correlation displacements
+% for all of the regions
+% even the masked ones
+% This is so the grid is compatible
+% with UOD, deform etc.
+tx_scc{p} = nan(num_regions, num_images_correlate);
+ty_scc{p} = nan(num_regions, num_images_correlate);
+tx_rpc{p} = nan(num_regions, num_images_correlate);
+ty_rpc{p} = nan(num_regions, num_images_correlate);
+tx_apc{p} = nan(num_regions, num_images_correlate);
+ty_apc{p} = nan(num_regions, num_images_correlate);
+
+% Validated
+tx_val_scc{p} = nan(num_regions, num_images_correlate);
+ty_val_scc{p} = nan(num_regions, num_images_correlate);
+tx_val_rpc{p} = nan(num_regions, num_images_correlate);
+ty_val_rpc{p} = nan(num_regions, num_images_correlate);
+tx_val_apc{p} = nan(num_regions, num_images_correlate);
+ty_val_apc{p} = nan(num_regions, num_images_correlate);
+
+% Smoothed vector fields
+tx_smoothed_scc{p} = zeros(num_regions, num_images_correlate);
+ty_smoothed_scc{p} = zeros(num_regions, num_images_correlate);
+tx_smoothed_rpc{p} = zeros(num_regions, num_images_correlate);
+ty_smoothed_rpc{p} = zeros(num_regions, num_images_correlate);
+tx_smoothed_apc{p} = zeros(num_regions, num_images_correlate);
+ty_smoothed_apc{p} = zeros(num_regions, num_images_correlate);
+
+% Flags for outliers
+is_outlier_scc{p} = zeros(num_regions, num_images_correlate);
+is_outlier_rpc{p} = zeros(num_regions, num_images_correlate);
+is_outlier_apc{p} = zeros(num_regions, num_images_correlate);
+
+% % Make coordinates for the filters
+%
+xv = (1 : region_width) - fourier_zero(region_width);
+yv = (1 : region_height) - fourier_zero(region_height);
+% Region coordinates
+[x, y] = meshgrid(xv, yv);
 
 % Subpixel weighting matrix
 subpix_weights = ones(region_height, region_width);
 
-% Number of regions
-num_regions = length(grid_x(:));
-% 
-% % Number of grid points
-% ny = size(unique(grid_y));
-% nx = size(unique(grid_x));
-% 
-% % Grid in matrix format
-% gx_mat = reshape(grid_x, [ny, nx]);
-% gy_mat = reshape(grid_y, [ny, nx]);
+% Image indices specified by the grid
+grid_inds = sub2ind([image_height, image_width], grid_y, grid_x);
 
-% Allocate translations
-tx_scc = zeros(num_regions, num_images_correlate);
-ty_scc = zeros(num_regions, num_images_correlate);
-tx_rpc = zeros(num_regions, num_images_correlate);
-ty_rpc = zeros(num_regions, num_images_correlate);
-tx_apc = zeros(num_regions, num_images_correlate);
-ty_apc = zeros(num_regions, num_images_correlate);
+% Indices to correlate
+correlate_inds = find(grid_mask(grid_inds));
 
-% Allocate plane arrays
-scc_ens = zeros(region_height, region_width, num_regions);
-rpc_ens = zeros(region_height, region_width, num_regions);
-spc_ens = zeros(region_height, region_width, num_regions) + ...
-    1i * zeros(region_height, region_width, num_regions);
+% Grid points to correlate
+grid_x_correlate = grid_x_01(correlate_inds);
+grid_y_correlate = grid_y_01(correlate_inds);
 
-tx_ens_scc = zeros(num_regions, 1);
-ty_ens_scc = zeros(num_regions, 1);
-tx_ens_rpc = zeros(num_regions, 1);
-ty_ens_rpc = zeros(num_regions, 1);
-tx_ens_apc = zeros(num_regions, 1);
-ty_ens_apc = zeros(num_regions, 1);
+% Number of regions to correlate
+num_regions_correlate = length(grid_x_correlate);
 
+% Allocate arrays for the ensemble
+% correlation displacements
+% for only the correlated regions
+tx_valid_scc = zeros(num_regions_correlate, 1);
+ty_valid_scc = zeros(num_regions_correlate, 1);
+tx_valid_rpc = zeros(num_regions_correlate, 1);
+ty_valid_rpc = zeros(num_regions_correlate, 1);
+tx_valid_apc = zeros(num_regions_correlate, 1);
+ty_valid_apc = zeros(num_regions_correlate, 1);
+
+% Allocate correlation plane arrays
+scc_ens = zeros(region_height, region_width, num_regions_correlate);
+rpc_ens = zeros(region_height, region_width, num_regions_correlate);
+spc_ens = zeros(region_height, region_width, num_regions_correlate) + ...
+    1i * zeros(region_height, region_width, num_regions_correlate);
+
+% Calculate the APC filter
+[APC_STD_Y{p}, APC_STD_X{p}] = ...
+    calculate_apc_filter_ensemble(image_list_filter_01, image_list_filter_02, ...
+    grid_y, grid_x,...
+    region_size, window_fraction, rpc_diameter, grid_mask);
+
+% Extract the filters to correlate
+apc_std_x_correlate = APC_STD_X{p}(correlate_inds);
+apc_std_y_correlate = APC_STD_Y{p}(correlate_inds);
 
 % Loop over the images.
 for n = 1 : num_images_correlate
     
+    % Inform the user.
     fprintf(1, 'On image %d of %d\n', n, num_images_correlate);
     
     % Extract the regions
-    region_mat_01 = extractSubRegions(image_list_01{n}, [region_height, region_width], grid_x, grid_y);
-    region_mat_02 = extractSubRegions(image_list_02{n}, [region_height, region_width], grid_x, grid_y);
+    region_mat_01 = extractSubRegions(image_list_correlate_01{n}, [region_height, region_width], grid_x_correlate, grid_y_correlate);
+    region_mat_02 = extractSubRegions(image_list_correlate_02{n}, [region_height, region_width], grid_x_correlate, grid_y_correlate);
     
     % Loop over the regions
-    parfor k = 1 : num_regions
+    parfor k = 1 : num_regions_correlate
         
-        % Inform user
+        % Determine which overall region is being correlated
+        global_ind = correlate_inds(k);
         
         % APC standard deviations
-        sx_apc = APC_STD_X(k);
-        sy_apc = APC_STD_Y(k);
+        sx_apc = apc_std_x_correlate(k);
+        sy_apc = apc_std_y_correlate(k);
         
         % Equivalent particle diameters
         dp_equiv_apc_x = equiv_particle_diameter(sx_apc, region_width);
@@ -280,209 +380,61 @@ for n = 1 : num_images_correlate
         % APC plane
         apc_plane = abs(fftshift(ifft2(fftshift(phaseOnlyFilter(spc_ens(:, :, k)) .* apc_filter))));
                 
-        [tx_scc(k, n), ty_scc(k, n)] = subpixel(scc_ens(:, :, k),...
+        % Calculate the SCC displacement
+        % from the ensemble SCC plane
+        % % % % REPLACE WITH CORRECT INDEX
+        [tx_valid_scc(k), ty_valid_scc(k)] = subpixel(scc_ens(:, :, k),...
         region_width, region_height, subpix_weights, ...
             1, 0, rpc_diameter * [1, 1]);
  
-        [tx_rpc(k, n), ty_rpc(k, n)] = subpixel(rpc_ens(:, :, k),...
+        % Calculate the RPC displacement
+        % from the ensemble RPC plane
+        [tx_valid_rpc(k), ty_valid_rpc(k)] = subpixel(rpc_ens(:, :, k),...
             region_width, region_height, subpix_weights, ...
             1, 0, rpc_diameter * [1, 1]);
          
-        [tx_apc(k, n), ty_apc(k, n)] = subpixel(apc_plane,...
+        % Calculate the APC displacement
+        % from the ensemble APC plane
+        [tx_valid_apc(k), ty_valid_apc(k)] = subpixel(apc_plane,...
             region_width, region_height, subpix_weights, ...
-            1, 0, [dp_equiv_apc_x, dp_equiv_apc_y]); 
-        
-
-        
+            1, 0, [dp_equiv_apc_x, dp_equiv_apc_y]);        
     end
     
+    % Put the unmasked displacement estimates
+    % into the overall displacement array
+    tx_scc{p}(correlate_inds, n) = tx_valid_scc;
+    ty_scc{p}(correlate_inds, n) = ty_valid_scc;
+    tx_rpc{p}(correlate_inds, n) = tx_valid_rpc;
+    ty_rpc{p}(correlate_inds, n) = ty_valid_rpc;
+    tx_apc{p}(correlate_inds, n) = tx_valid_apc;
+    ty_apc{p}(correlate_inds, n) = ty_valid_apc;
     
+    % Validate the vector fields
+    [tx_val_scc{p}(:, n), ty_val_scc{p}(:, n), is_outlier_scc{p}(:, n)] = validateField_prana(grid_x, grid_y, tx_scc(:, n), ty_scc(:, n));
+    [tx_val_rpc{p}(:, n), ty_val_rpc{p}(:, n), is_outlier_rpc{p}(:, n)] = validateField_prana(grid_x, grid_y, tx_rpc(:, n), ty_rpc(:, n));
+    [tx_val_apc{p}(:, n), ty_val_apc{p}(:, n), is_outlier_apc{p}(:, n)] = validateField_prana(grid_x, grid_y, tx_apc(:, n), ty_apc(:, n));
     
-% Plotting garbage
-% Skip vectors
-Skip = 2;
-Scale = 4;
-c_max = 45;
-
-figure(2);
-subplot(3, 2, 1);
-quiver(grid_x(1 : Skip : end), grid_y(1 : Skip : end), ...
-    Scale * tx_scc(1 : Skip : end, n), ...
-    Scale * ty_scc(1 : Skip : end, n), ...
-    0, 'b', 'linewidth', lw);
-axis image
-xlim([1, image_width]);
-ylim([1, image_height]);
-set(gca, 'ydir', 'reverse');
-title(sprintf('$\\textrm{SCC}, \\, %d \\,\\, \\textrm{pairs}$', n), 'FontSize', fSize, 'interpreter', 'latex');
-set(gca, 'FontSize', fSize)
-box on
-
-
-subplot(3, 2, 3);
-
-quiver(grid_x(1 : Skip : end), grid_y(1 : Skip : end), ...
-    Scale * tx_rpc(1 : Skip : end, n), ...
-    Scale * ty_rpc(1 : Skip : end, n), ...
-    0, 'r', 'linewidth', lw);
-axis image
-xlim([1, image_width]);
-ylim([1, image_height]);
-set(gca, 'ydir', 'reverse');
-title(sprintf('$\\textrm{RPC}, d_\\mathrm{RPC} = %0.1f,\\, %d  \\,\\, \\textrm{pairs}$', rpc_diameter, n), 'FontSize', fSize, 'interpreter', 'latex')
-set(gca, 'FontSize', fSize)
-box on
-
-
-subplot(3, 2, 5 ,'FontSize', fSize);
-quiver(grid_x(1 : Skip : end), grid_y(1 : Skip : end), ...
-    Scale * tx_apc(1 : Skip : end, n), ...
-    Scale * ty_apc(1 : Skip : end, n), ...
-    0, 'k', 'linewidth', lw);
-axis image
-xlim([1, image_width]);
-ylim([1, image_height]);
-set(gca, 'ydir', 'reverse');
-drawnow;
-title(sprintf('$\\textrm{APC}, \\, %d \\,\\, \\textrm{pairs}$', n), 'FontSize', fSize, 'interpreter', 'latex')
-set(gca, 'FontSize', fSize)
-box on
-
-
-
-% Full grids
-% Grid the image
-[gx_full_full, gy_full_full] = gridImage([image_height, image_width],...
-    grid_spacing, grid_buffer_y, grid_buffer_x);
-
-gx_full = gx_full_full + grid_shift_x;
-gy_full = gy_full_full + grid_shift_y;
-
-[~, sy_rpc, sx_rpc] = fit_gaussian_2D(rpc_filter);
-
-tx_scc_full = zeros(size(gx_full));
-tx_rpc_full = zeros(size(gx_full));
-tx_apc_full = zeros(size(gx_full));
-s_apc_full = zeros(size(gx_full));
-
-
-s_apc_mag = sqrt(APC_STD_X.^2 + APC_STD_Y.^2);
-s_rpc_mag = sqrt(sx_rpc.^2 + sy_rpc.^2); 
-
-s_apc = s_apc_mag ./ s_rpc_mag;
-
-for k = 1 : length(grid_x)
-    
-    ind = find(gx_full == grid_x(k) & gy_full == grid_y(k));
-    
-    tx_scc_full(ind) = tx_scc(k, n);
-    tx_rpc_full(ind) = tx_rpc(k, n);
-    tx_apc_full(ind) = tx_apc(k, n);
-    s_apc_full(ind) = s_apc(k);
-end
-
-nx = length(unique(gx_full));
-ny = length(unique(gy_full));
-tx_scc_full_mat = reshape(tx_scc_full, [ny, nx]);
-tx_rpc_full_mat = reshape(tx_rpc_full, [ny, nx]);
-tx_apc_full_mat = reshape(tx_apc_full, [ny, nx]);
-s_apc_full_mat = reshape(s_apc_full, [ny, nx]);
-
-subplot(3, 2, 2);
-imagesc(gx_full, gy_full, ...
-    tx_scc_full_mat);
-axis image
-xlim([1, image_width]);
-ylim([1, image_height]);
-set(gca, 'ydir', 'reverse');
-title(sprintf('$\\Delta x \\left( \\textrm{SCC} \\right), \\, \\, %d \\,\\, \\textrm{pairs}$', n), 'FontSize', fSize, 'interpreter', 'latex');
-set(gca, 'FontSize', fSize)
-caxis([0, c_max]); 
-c = get(gca, 'position');
-h = colorbar;
-ylabel(h, '$\Delta x \left( \textrm{pixels} \right)$', 'interpreter', 'latex', 'fontsize', fSize);
-set(gca, 'position', c);
-
-
-
-subplot(3, 2, 4);
-imagesc(gx_full, gy_full, ...
-    tx_rpc_full_mat);
-axis image
-xlim([1, image_width]);
-ylim([1, image_height]);
-set(gca, 'ydir', 'reverse');
-title(sprintf('$\\Delta x \\, \\, \\left(\\textrm{RPC}, d_\\mathrm{RPC} = %0.1f \\right),\\, %d  \\,\\, \\textrm{pairs}$', rpc_diameter, n), 'FontSize', fSize, 'interpreter', 'latex')
-set(gca, 'FontSize', fSize)
-caxis([0, c_max]); 
-c = get(gca, 'position');
-h = colorbar;
-ylabel(h, '$\Delta x \left( \textrm{pixels} \right)$', 'interpreter', 'latex', 'fontsize', fSize);
-set(gca, 'position', c);
-
-
-
-subplot(3, 2, 6 ,'FontSize', fSize);
-imagesc(gx_full, gy_full, ...
-    tx_apc_full_mat);
-axis image
-xlim([1, image_width]);
-ylim([1, image_height]);
-set(gca, 'ydir', 'reverse');
-drawnow;
-title(sprintf('$\\Delta x \\,\\, \\left(\\textrm{APC}\\right), \\, %d \\,\\, \\textrm{pairs}$', n), 'FontSize', fSize, 'interpreter', 'latex')
-set(gca, 'FontSize', fSize)
-caxis([0, c_max]); 
-c = get(gca, 'position');
-h = colorbar;
-ylabel(h, '$\Delta x \left( \textrm{pixels} \right)$', 'interpreter', 'latex', 'fontsize', fSize);
-set(gca, 'position', c);
-
-set(gcf, 'color', 'white');
-
-
-
-set(gcf, 'outerposition', [ -1696         214        1293        1054]);
-
-
-file_path = sprintf('~/Desktop/plots/plot_%05d.png', n);
-
-pause(0.01);
-
-export_fig('-r150', file_path)
-    
-
+    % Smooth the vector fields
+    tx_smoothed_scc{p}(:, n) = smoothField(tx_val_scc(:, n), smoothing_kernel_diameter, smoothing_kernel_std);
+    ty_smoothed_scc{p}(:, n) = smoothField(ty_val_scc(:, n), smoothing_kernel_diameter, smoothing_kernel_std);
+    tx_smoothed_rpc{p}(:, n) = smoothField(tx_val_rpc(:, n), smoothing_kernel_diameter, smoothing_kernel_std);
+    ty_smoothed_rpc{p}(:, n) = smoothField(ty_val_rpc(:, n), smoothing_kernel_diameter, smoothing_kernel_std);
+    tx_smoothed_apc{p}(:, n) = smoothField(tx_val_apc(:, n), smoothing_kernel_diameter, smoothing_kernel_std);
+    ty_smoothed_apc{p}(:, n) = smoothField(ty_val_apc(:, n), smoothing_kernel_diameter, smoothing_kernel_std);
 
 end
 
 
 
-% % Do the APC fits and calculate the displacements
-% parfor k = 1 : num_regions
-%     [tx_ens_scc(k), ty_ens_scc(k)] = subpixel(scc_ens(:, :, k),...
-%         region_width, region_height, subpix_weights, ...
-%             1, 0, rpc_diameter * [1, 1]);
-%         
-%     [tx_ens_rpc(k), ty_ens_rpc(k)] = subpixel(rpc_ens(:, :, k),...
-%         region_width, region_height, subpix_weights, ...
-%             1, 0, rpc_diameter * [1, 1]);
-%         
-%     % APC diameters
-%     sx_apc = APC_STD_X(k);
-%     sy_apc = APC_STD_Y(k);
-%     dp_equiv_apc_x = equiv_particle_diameter(sx_apc, region_width);
-%     dp_equiv_apc_y = equiv_particle_diameter(sy_apc, region_height);
-%     
-%     
-%      % Make the spectral filter
-%     apc_filter = exp(-x.^2 / (2 * sx_apc^2) - y.^2 / (2 * sy_apc^2));    
-%     % Filter and invert the ensemble spectral plane
-%     apc_plane = abs(fftshift(ifft2(fftshift(phaseOnlyFilter(spc_ens(:, :, k)) .* apc_filter))));
-%     
-%     [tx_ens_apc(k), ty_ens_apc(k)] = subpixel(apc_plane,...
-%             region_width, region_height, subpix_weights, ...
-%             1, 0, [dp_equiv_apc_x, dp_equiv_apc_y]); 
-%     
-% end
+
+
+
+
+
+
+
+
+
+
 
 
