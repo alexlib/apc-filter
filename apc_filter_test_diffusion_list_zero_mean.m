@@ -8,14 +8,9 @@ sx_mean = 5;
 sy_mean = 0;
 sz_mean = 0;
 
-% diffusion_list = 2;
-diffusion_list = [0, 2, 4];
-diffusion_list = 0;
-
 % Window size
 window_fraction = 1 * [1, 1];
 
-num_diffusions = length(diffusion_list);
 
 num_trials = 1;
 
@@ -25,8 +20,8 @@ num_regions_neq = 1;
 % 
 
 % Image dimensions
-region_height = 128;
-region_width  = 128;
+region_height = 64;
+region_width  = 64;
 % % Grid step
 gx_range = 0;
 gx_step = 0;
@@ -49,12 +44,20 @@ yv = (1 : region_height) - yc;
 % % Particle stuff
 
 % Standard deviation of particle image diameters
-d_std = 4;
+d_std = 0;
 
 % Mean particle diameter
-d_mean = 3.2;
+d_mean = 3;
 
-R = 1.5;
+% Diffusion ratio
+R = 2;
+
+% Diffusion list
+diffusion_list = R .* (d_mean / 4);
+
+% Number of diffusions
+num_diffusions = length(diffusion_list);
+
 
 % Range of displacements
 sx_range = R * d_mean;

@@ -51,14 +51,18 @@ fSize = 16;
 % image_ext = '.tiff';
 % start_image = 1;
 % end_image = 100;
-% skip_image = 1;
+% skip_image = 1;imgAmask3.tif
 % c_step = 3;
 % trailer_a = '';
 % trailer_b = '';
 
 % image_dir = fullfile(get_image_repo, 'piv_challenge', '2014', 'piv_challenge_2014_A', 'raw');
-image_dir = '/Users/matthewgiarra/Documents/School/VT/Research/Aether/piv_test_images/piv_challenge/2014/piv_challenge_2014_A/raw';
-image_base_name = 'A_';
+image_dir = '/Users/matthewgiarra/Documents/School/VT/Research/Aether/piv_test_images/pivchallenge/2014/A/images/proc/ghost';
+image_base_name = 'A_deghost_';
+
+image_dir = '/Users/matthewgiarra/Documents/School/VT/Research/Aether/piv_test_images/pivchallenge/2014/A/images/proc/mean_sub';
+image_base_name = 'A_mean_sub_';
+
 num_digits = 5;
 image_ext = '.tif';
 start_image = 300;
@@ -66,7 +70,11 @@ skip_image = 1;
 c_step = 0;
 trailer_a = '_a';
 trailer_b = '_b';
-mask_path = fullfile(image_dir, '..', 'mask', 'A_mask.tif');
+
+% Locate the grid mask.
+mask_dir = '/Users/matthewgiarra/Documents/School/VT/Research/Aether/piv_test_images/pivchallenge/2014/A/images/masks';
+mask_name = 'imgAmask3.tif';
+mask_path = fullfile(mask_dir, mask_name);
 
 % image_dir = fullfile(get_image_repo, 'confocal', '100nm_resonant_30uL_90deg_1450um', 'tif');
 % image_base_name = '100nm_resonant_30uL_90deg_1450um_';
@@ -89,7 +97,7 @@ num_images_filter = 50;
 num_images_correlate = 10;
 
 % Number of Passes
-num_passes_spec = 3;
+num_passes_spec = 1;
 
 % RPC diameter
 rpc_diameter = 8;
@@ -104,24 +112,27 @@ smoothing_kernel_std = 1;
 deform_method = 'interp2';
 
 % Faux job file
-Parameters.Processing(1).Region.Height = 48;
-Parameters.Processing(1).Region.Width = 256;
-Parameters.Processing(1).Grid.Spacing.Y = 24;
-Parameters.Processing(1).Grid.Spacing.X = 48;
+Parameters.Processing(1).Region.Height = 64;
+Parameters.Processing(1).Region.Width = 128;
+Parameters.Processing(1).Grid.Spacing.Y = 64;
+Parameters.Processing(1).Grid.Spacing.X = 64;
 Parameters.Processing(1).Grid.Shift.Y = -16;
 Parameters.Processing(1).Grid.Shift.X = 0;
-Parameters.Processing(1).Window.Fraction = 0.5;
+Parameters.Processing(1).Window.Fraction.Image_01 = [0.25, 0.5];
+Parameters.Processing(1).Window.Fraction.Image_02 = [0.25, 1];
+% Parameters.Processing(1).Window.Fraction.Image_02 = [0.25, 0.5];
 
+% Copy the first processing pass to the second one.
 Parameters.Processing(2) = Parameters.Processing(1);
 
-% Faux job file
-Parameters.Processing(3).Region.Height = 32;
-Parameters.Processing(3).Region.Width = 128;
-Parameters.Processing(3).Grid.Spacing.Y = 24;
-Parameters.Processing(3).Grid.Spacing.X = 24;
-Parameters.Processing(3).Grid.Shift.Y = -16;
-Parameters.Processing(3).Grid.Shift.X = 0;
-Parameters.Processing(3).Window.Fraction = 0.5;
+% % Create a third processing pass.
+% Parameters.Processing(3).Region.Height = 32;
+% Parameters.Processing(3).Region.Width = 128;
+% Parameters.Processing(3).Grid.Spacing.Y = 24;
+% Parameters.Processing(3).Grid.Spacing.X = 24;
+% Parameters.Processing(3).Grid.Shift.Y = -16;
+% Parameters.Processing(3).Grid.Shift.X = 0;
+% Parameters.Processing(3).Window.Fraction = 0.5;
 
 % Number of iterations
 num_iterations = min(num_passes_spec, length(Parameters.Processing));
@@ -192,7 +203,8 @@ for p = 1 : num_iterations
     region_width  = Parameters.Processing(p).Region.Width;
 
     % Window fraction
-    window_fraction = Parameters.Processing(p).Window.Fraction;
+    window_fraction_01 = Parameters.Processing(p).Window.Fraction.Image_01;
+    window_fraction_02 = Parameters.Processing(p).Window.Fraction.Image_02;
 
     % Grid spacing
     grid_spacing_y = Parameters.Processing(p).Grid.Spacing.Y;
@@ -211,15 +223,22 @@ for p = 1 : num_iterations
     rpc_filter = spectralEnergyFilter(...
         region_height, region_width, rpc_diameter);
 
-    % Spatial window
-    g_win = gaussianWindowFilter(...
-        [region_height, region_width], window_fraction, 'fraction');
+    % Spatial window for the first image
+    g_win_01 = gaussianWindowFilter(...
+        [region_height, region_width], window_fraction_01, 'fraction');
+    
+    g_win_02 = gaussianWindowFilter(...
+        [region_height, region_width], window_fraction_02, 'fraction');
 
     % Grid the image
     % DO not put the mask in here
     % This is the fixed grid.
     [grid_x, grid_y] = gridImage([image_height, image_width],...
         grid_spacing, grid_buffer_y, grid_buffer_x, grid_shift_y, grid_shift_x);
+    
+    % Temporary grid points for debugging
+%     grid_x = 1856;
+%     grid_y = 440;
     
     % Save the grid to the cell structure
     gx{p} = grid_x;
@@ -269,7 +288,7 @@ for p = 1 : num_iterations
     % % Make coordinates for the filters
     %
     xv = (1 : region_width) - fourier_zero(region_width);
-    yv = (1 : region_height) - fourier_zero(region_height);
+    yv = (1 : region_height) - fourier_zero(region_height);    
     % Region coordinates
     [x, y] = meshgrid(xv, yv);
 
@@ -299,9 +318,11 @@ for p = 1 : num_iterations
     tx_valid_apc = zeros(num_regions_correlate, 1);
     ty_valid_apc = zeros(num_regions_correlate, 1);
 
-    % Allocate correlation plane arrays
+    % Allocate the spatial correlation plane arrays (real valued)
     scc_ens = zeros(region_height, region_width, num_regions_correlate);
     rpc_ens = zeros(region_height, region_width, num_regions_correlate);
+    
+    % Allocate the spectral correlation plane arrays (complex valued)
     spc_ens = zeros(region_height, region_width, num_regions_correlate) + ...
         1i * zeros(region_height, region_width, num_regions_correlate);
     
@@ -323,7 +344,7 @@ for p = 1 : num_iterations
     [APC_STD_Y{p}, APC_STD_X{p}] = ...
         calculate_apc_filter_ensemble_deform(image_list_filter_01, image_list_filter_02, ...
         grid_y, grid_x,...
-        [region_height, region_width], window_fraction, rpc_diameter, grid_mask, deform_params);
+        [region_height, region_width], window_fraction_01, window_fraction_02, rpc_diameter, grid_mask, deform_params);
 
     % Extract the filters to correlate
     apc_std_x_correlate = APC_STD_X{p}(correlate_inds);
@@ -347,12 +368,14 @@ for p = 1 : num_iterations
             gx_source = gx{p-1};
             gy_source = gy{p-1};
             
-             % Deform the images
+            % Deform the images
             [image_01, image_02] = deform_image_pair(...
             image_raw_01, image_raw_02, ...
             gx_source, gy_source,...
             dx_source, dy_source);
         else
+            % If deform wasn't specified
+            % then use the raw images. 
             image_01 = image_raw_01;
             image_02 = image_raw_02;
         end
@@ -362,7 +385,7 @@ for p = 1 : num_iterations
         region_mat_02 = extractSubRegions(image_02, [region_height, region_width], grid_x_correlate, grid_y_correlate);
 
         % Loop over the regions
-        parfor k = 1 : num_regions_correlate
+        for k = 1 : num_regions_correlate
             
             % Determine which overall region is being correlated
             global_ind = correlate_inds(k);
@@ -383,8 +406,8 @@ for p = 1 : num_iterations
             apc_filter = exp(-x.^2 / (2 * sx_apc^2) - y.^2 / (2 * sy_apc^2));
 
             % Fourier transforms
-            F1 = fftshift(fft2(g_win .* (region_01 - mean(region_01(:)))));
-            F2 = fftshift(fft2(g_win .* (region_02 - mean(region_02(:)))));
+            F1 = fftshift(fft2(g_win_01 .* (region_01 - mean(region_01(:)))));
+            F2 = fftshift(fft2(g_win_02 .* (region_02 - mean(region_02(:)))));
 
             % Correlation
             cc_spect = F1 .* conj(F2);
@@ -447,6 +470,153 @@ for p = 1 : num_iterations
 
     end
 end
+
+for p = 1 : num_iterations
+   
+    nx = length(unique(gx{p}));
+    ny = length(unique(gy{p}));
+    
+    gx_mat = reshape(gx{p}, [ny, nx]);
+    gy_mat = reshape(gy{p}, [ny, nx]);
+    
+    tx_mat_scc = reshape(tx_scc{1}(:, end), [ny, nx]);
+    ty_mat_scc = reshape(ty_scc{1}(:, end), [ny, nx]);
+    
+    tx_mat_rpc = reshape(tx_rpc{1}(:, end), [ny, nx]);
+    ty_mat_rpc = reshape(ty_rpc{1}(:, end), [ny, nx]);
+    
+    tx_mat_apc = reshape(tx_apc{1}(:, end), [ny, nx]);
+    ty_mat_apc = reshape(ty_apc{1}(:, end), [ny, nx]);
+    
+end
+
+% Mask points
+[mask_y, mask_x] = get_mask_outline(grid_mask);
+
+dx_plot = 5;
+
+gv = [-15, 16];
+
+Skip_x = 1;
+Skip_y = 1;
+Scale = 4;
+
+lw_mesh = 1;
+
+scc_plot = scc_ens(1 : Skip : end, 1 : Skip : end);
+rpc_plot = rpc_ens(1 : Skip : end, 1 : Skip : end);
+apc_plot = apc_plane(1 : Skip : end, 1 : Skip : end);
+
+% First and last rows to plot
+min_row = min(gy_mat(:));
+max_row = max(gy_mat(:));
+min_col = min(gx_mat(:));
+max_col = max(gx_mat(:));
+
+subplot(3, 1, 1);
+imagesc(gx_mat(:), gy_mat(:), tx_mat_scc);
+axis image;
+hold on;
+quiver(gx_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
+       gy_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
+       Scale * tx_mat_scc(1 : Skip_y : end, 1 : Skip_x : end), ...
+       Scale * ty_mat_scc(1 : Skip_y : end, 1 : Skip_x : end), ...
+       0, 'black', 'linewidth', 1.5);
+plot(mask_x, mask_y, 'ok');   
+hold off
+xlim([min_col, max_col]);
+yl = ylim;
+
+% First and last rows to plot
+min_row = min(gy_mat(:));
+max_row = max(gy_mat(:));
+min_col = min(gx_mat(:));
+max_col = max(gx_mat(:));
+
+subplot(3, 1, 2);
+imagesc(gx_mat(:), gy_mat(:), tx_mat_rpc);
+axis image;
+hold on;
+quiver(gx_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
+       gy_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
+       Scale * tx_mat_rpc(1 : Skip_y : end, 1 : Skip_x : end), ...
+       Scale * ty_mat_rpc(1 : Skip_y : end, 1 : Skip_x : end), ...
+       0, 'black', 'linewidth', 1.5);
+plot(mask_x, mask_y, 'ok');   
+hold off
+xlim([min_col, max_col]);
+ylim(yl);
+
+subplot(3, 1, 3);
+% First and last rows to plot
+min_row = min(gy_mat(:));
+max_row = max(gy_mat(:));
+min_col = min(gx_mat(:));
+max_col = max(gx_mat(:));
+
+% subplot(3, 1, 1);
+imagesc(gx_mat(:), gy_mat(:), tx_mat_apc);
+axis image;
+hold on;
+quiver(gx_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
+       gy_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
+       Scale * tx_mat_apc(1 : Skip_y : end, 1 : Skip_x : end), ...
+       Scale * ty_mat_apc(1 : Skip_y : end, 1 : Skip_x : end), ...
+       0, 'black', 'linewidth', 1.5);
+plot(mask_x, mask_y, 'ok');   
+hold off
+xlim([min_col, max_col]);
+ylim(yl);
+
+
+
+
+
+
+
+
+% subplot(3, 1, 1);
+% % surf(scc_plot ./ max(scc_plot(:)), 'linewidth', 1E-5);
+% mesh(scc_plot ./ max(scc_plot(:)), 'linewidth', lw_mesh, 'edgecolor', 'black');
+% axis square;
+% xlim([1, region_width / Skip]);
+% ylim([1, region_height / Skip]);
+% zlim([0, 1.1]);
+% axis off;
+% % set(gca, 'units', 'pixels');
+% p1 = get(gca, 'position');
+% set(gca, 'view', gv);
+% 
+% subplot(3, 1, 2);
+% % surf(rpc_plot ./ max(rpc_plot(:)), 'linewidth', 1E-5);
+% mesh(rpc_plot ./ max(rpc_plot(:)), 'linewidth', lw_mesh, 'edgecolor', 'black');
+% axis square;
+% xlim([1, region_width / Skip]);
+% ylim([1, region_height / Skip]);
+% zlim([0, 1.1]);
+% axis off;
+% % set(gca, 'units', 'pixels');
+% p2 = get(gca, 'position');
+% p2(2) = p1(2) - p1(4) + dx_plot;
+% % set(gca, 'position', p2);
+% set(gca, 'view', gv);
+% 
+% 
+% subplot(3, 1, 3);
+% % surf(apc_plot ./ max(apc_plot(:)), 'linewidth', 1E-5);
+% mesh(apc_plot ./ max(apc_plot(:)), 'linewidth', lw_mesh, 'edgecolor', 'black');
+% axis square;
+% xlim([1, region_width / Skip]);
+% ylim([1, region_height / Skip]);
+% zlim([0, 1.1]);
+% axis off;
+% % set(gca, 'units', 'pixels');
+% p3 = get(gca, 'position');
+% p3(2) = p2(2) - p2(4) + dx_plot;
+% % set(gca, 'position', p3);
+% set(gca, 'view', gv);
+% set(gcf, 'color', 'white');
+
 
 % =======
 

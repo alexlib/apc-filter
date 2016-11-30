@@ -1,7 +1,7 @@
 function [APC_STD_Y, APC_STD_X] = ...
     calculate_apc_filter_ensemble_deform(image_list_01, image_list_02, ...
     grid_y, grid_x,...
-    region_size, window_fraction, rpc_diameter, MASK, DEFORM_PARAMS)
+    region_size, window_fraction_01, window_fraction_02, rpc_diameter, MASK, DEFORM_PARAMS)
 % APC_STD_Y, APC_STD_X, APC_FILTER] = ...
 %     calculate_apc_filter_from_image_pair(image_01, image_02, ...
 %     grid_y, grid_x, region_size, window_fraction, shuffle_range, shuffle_step)
@@ -90,17 +90,17 @@ function [APC_STD_Y, APC_STD_X] = ...
 % 
 
 % Default to no deform
-if nargin < 9
+if nargin < 10
     DEFORM_PARAMS = [];
 end
 
 % Default to no mask
-if nargin < 8
+if nargin < 9
     MASK = [];
 end;
 
 % Default to rpc diameter of 3 pixels
-if nargin < 7
+if nargin < 8
     rpc_diameter = 3;
 end
 
@@ -124,9 +124,13 @@ num_regions = length(gy);
 
 % Make the Gaussian window
 % and save it for later.
-g_win = gaussianWindowFilter(...
+g_win_01 = gaussianWindowFilter(...
     [region_height, region_width], ...
-    window_fraction, 'fraction');
+    window_fraction_01, 'fraction');
+
+g_win_02 = gaussianWindowFilter(...
+    [region_height, region_width], ...
+    window_fraction_02, 'fraction');
 
 % Allocate vectors to hold the
 % paramters of the Gaussian
@@ -204,8 +208,8 @@ for p = 1 : num_images
                 [region_height, region_width], gx(k), gy(k));
 
             % Fourier transforms
-            F1 = fftshift(fft2(g_win .* (region_01 - mean(region_01(:)))));
-            F2 = fftshift(fft2(g_win .* (region_02 - mean(region_02(:)))));
+            F1 = fftshift(fft2(g_win_01 .* (region_01 - mean(region_01(:)))));
+            F2 = fftshift(fft2(g_win_02 .* (region_02 - mean(region_02(:)))));
         
             % Cross correlation
             complex_cross_correlation_current = F1 .* conj(F2);
