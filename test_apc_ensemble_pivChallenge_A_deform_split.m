@@ -1,11 +1,3 @@
-% image_dir = '~/Desktop/images/experimental';
-% image_base_name = 'vortexring_d03_f60_t06_';
-% num_digits = 6;
-% image_ext = '.tif';
-% start_image = 840;
-% end_image = 859;
-% skip_image = 1;
-% c_step = 1;
 
 addpaths('..');
 
@@ -13,12 +5,12 @@ lw = 2 ;
 fSize = 16;
 
 % image_dir = fullfile(get_image_repo, 'piv_challenge', '2014', 'piv_challenge_2014_A', 'raw');
-image_dir = '/Users/matthewgiarra/Documents/School/VT/Research/Aether/piv_test_images/pivchallenge/2014/A/images/raw';
-image_base_name = 'A_';
+image_dir = '/Users/matthewgiarra/Documents/School/VT/Research/Aether/piv_test_images/pivchallenge/2014/A/images/proc/ghost';
+image_base_name = 'A_deghost_';
 
 num_digits = 5;
 image_ext = '.tif';
-start_image = 1;
+start_image = 400;
 skip_image = 1;
 c_step = 0;
 trailer_a = '_a';
@@ -29,11 +21,13 @@ mask_dir = '/Users/matthewgiarra/Documents/School/VT/Research/Aether/piv_test_im
 mask_name = 'imgAmask3.tif';
 mask_path = fullfile(mask_dir, mask_name);
 
+num_images = 160;
+
 % Number of images to use to calculate the APC filter
-num_images_filter = 20;
+num_images_filter = num_images;
 
 % Number of images to process after calculating the filter.
-num_images_correlate = 20;
+num_images_correlate = num_images;
 
 % Number of Passes
 num_passes_spec = 1;
@@ -50,53 +44,58 @@ smoothing_kernel_std = 1;
 % Deform method
 deform_method = 'interp2';
 
+Images.Data.Directory = '/Users/matthewgiarra/Documents/School/VT/Research/Aether/piv_test_images/pivchallenge/2014/A/images/proc/ghost';
+Images.Data.BaseName = 'A_deghost_';
+Images.Data.Digits = 5;
+Images.Data.Extension = '.tif';
+Images.Data.Trailers = {'_a', '_b'};
+Images.Data.Frames.Start = 1;
+Images.Data.Frames.End = Images.Data.Frames.Start + num_images - 1;
+Images.Data.Frames.Step = 1;
+
+Images.Mask.Directory = '/Users/matthewgiarra/Documents/School/VT/Research/Aether/piv_test_images/pivchallenge/2014/A/images/masks';
+Images.Mask.Name = 'imgAmask3.tif';
+
 % Faux job file
-Parameters.Processing(1).Region.Height = 64;
-Parameters.Processing(1).Region.Width = 128;
-Parameters.Processing(1).Grid.Spacing.Y = 64;
-Parameters.Processing(1).Grid.Spacing.X = 64;
-Parameters.Processing(1).Grid.Shift.Y = 0;
-Parameters.Processing(1).Grid.Shift.X = 0;
-Parameters.Processing(1).Window.Fraction.Image_01 = [0.5, 0.5];
-Parameters.Processing(1).Window.Fraction.Image_02 = [0.5, 1];
-Parameters.Processing(1).Correlation.EstimatedParticleDiameter = 6;
+Processing(1).Region.Height = 64;
+Processing(1).Region.Width = 128;
+Processing(1).Grid.Spacing.Y = 64;
+Processing(1).Grid.Spacing.X = 64;
+Processing(1).Grid.Shift.Y = -16;
+Processing(1).Grid.Shift.X = 0;
+Processing(1).Window.Fraction = {[0.5, 0.5], [0.5, 1]};
 
-Parameters.Processing(1).Correlation.Method = 'apc';
-Parameters.Processing(1).Correlation.EnsembleLength = 10;
-Parameters.Processing(1).Correlation.APC.EnsembleLength = 10;
-Parameters.Processing(1).Correlation.APC.Shuffle.Range = [0, 0];
-Parameters.Processing(1).Correlation.APC.Shuffle.Step = [0, 0];
+Processing(1).Correlation.EstimatedParticleDiameter = 6;
+Processing(1).Correlation.Method = 'apc';
+Processing(1).Correlation.Step = 0;
+Processing(1).Correlation.Ensemble.Length = num_images;
 
-Parameters.Processing(1).Correlation.RPC.FilterDiameter = 6;
+Processing(1).Correlation.APC.EnsembleLength = 10;
+Processing(1).Correlation.APC.Shuffle.Range = [0, 0];
+Processing(1).Correlation.APC.Shuffle.Step = [0, 0];
+Processing(1).Correlation.RPC.FilterDiameter = 6;
 
-Parameters.Processing(1).Validation.DoValidation = 1;
-Parameters.Processing(1).Validation.ValidationMethod = 'uod';
+Processing(1).Validation.DoValidation = 1;
+Processing(1).Validation.ValidationMethod = 'uod';
 
-Parameters.Processing(1).Smoothing.DoSmoothing = 1;
-Parameters.Processing(1).Smoothing.KernelDiameter = 7;
-Parameters.Processing(1).Smoothing.KernelStdDev = 1;
+Processing(1).Smoothing.DoSmoothing = 1;
+Processing(1).Smoothing.KernelDiameter = 7;
+Processing(1).Smoothing.KernelStdDev = 1;
 
-Parameters.Processing(1).Iterative.Method = 'deform';
-Parameters.Processing(1).Iterative.Deform.Interpolation = 'interp2'; 
-Parameters.Processing(1).Iterative.Deform.ConvergenceCriterion = 0.1;
-Parameters.Processing(1).Iterative.Deform.MaxIterations = 1;
-
-
+Processing(1).Iterative.Method = 'deform';
+Processing(1).Iterative.Deform.Interpolation = 'interp2'; 
+Processing(1).Iterative.Deform.ConvergenceCriterion = 0.1;
+Processing(1).Iterative.Deform.MaxIterations = 1;
 
 % Copy the first processing pass to the second one.
-Parameters.Processing(2) = Parameters.Processing(1);
+Processing(2) = Processing(1);
 
-% % Create a third processing pass.
-% Parameters.Processing(3).Region.Height = 32;
-% Parameters.Processing(3).Region.Width = 128;
-% Parameters.Processing(3).Grid.Spacing.Y = 24;
-% Parameters.Processing(3).Grid.Spacing.X = 24;
-% Parameters.Processing(3).Grid.Shift.Y = -16;
-% Parameters.Processing(3).Grid.Shift.X = 0;
-% Parameters.Processing(3).Window.Fraction = 0.5;
+% Add the fields to the jobfile structure.
+JobFile.Images = Images;
+JobFile.Processing = Processing;
 
 % Number of iterations
-num_iterations = min(num_passes_spec, length(Parameters.Processing));
+num_iterations = min(num_passes_spec, length(Processing));
 
 % Grid mask
 grid_mask = double(imread(mask_path));
@@ -127,6 +126,8 @@ image_list_02 = {''};
 
 % Digit string
 dig_str = ['%0' num2str(num_digits) 'd'];
+
+
 
 % Form the image path lists for the filter calculation
 for k = 1 : num_pairs_filter
@@ -160,20 +161,20 @@ end
 for p = 1 : num_iterations
     
     % Region sizes
-    region_height = Parameters.Processing(p).Region.Height;
-    region_width  = Parameters.Processing(p).Region.Width;
+    region_height = Processing(p).Region.Height;
+    region_width  = Processing(p).Region.Width;
 
     % Window fraction
-    window_fraction_01 = Parameters.Processing(p).Window.Fraction.Image_01;
-    window_fraction_02 = Parameters.Processing(p).Window.Fraction.Image_02;
+    window_fraction_01 = Processing(p).Window.Fraction{1};
+    window_fraction_02 = Processing(p).Window.Fraction{2};
 
     % Grid spacing
-    grid_spacing_y = Parameters.Processing(p).Grid.Spacing.Y;
-    grid_spacing_x = Parameters.Processing(p).Grid.Spacing.X;
+    grid_spacing_y = Processing(p).Grid.Spacing.Y;
+    grid_spacing_x = Processing(p).Grid.Spacing.X;
 
     % Grid shift
-    grid_shift_y = Parameters.Processing(p).Grid.Shift.Y;
-    grid_shift_x = Parameters.Processing(p).Grid.Shift.X;
+    grid_shift_y = Processing(p).Grid.Shift.Y;
+    grid_shift_x = Processing(p).Grid.Shift.X;
 
     % Grid the images
     grid_spacing = [grid_spacing_y, grid_spacing_x];
@@ -198,8 +199,8 @@ for p = 1 : num_iterations
         grid_spacing, grid_buffer_y, grid_buffer_x, grid_shift_y, grid_shift_x);
     
     % Temporary grid points for debugging
-%     grid_x = 1856;
-%     grid_y = 440;
+    grid_x = 2368;
+    grid_y = 1009;
     
     % Save the grid to the cell structure
     gx{p} = grid_x;
@@ -470,109 +471,110 @@ max_row = max(gy_mat(:));
 min_col = min(gx_mat(:));
 max_col = max(gx_mat(:));
 
-subplot(3, 1, 1);
-imagesc(gx_mat(:), gy_mat(:), tx_mat_scc);
-axis image;
-hold on;
-quiver(gx_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
-       gy_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
-       Scale * tx_mat_scc(1 : Skip_y : end, 1 : Skip_x : end), ...
-       Scale * ty_mat_scc(1 : Skip_y : end, 1 : Skip_x : end), ...
-       0, 'black', 'linewidth', 1.5);
-plot(mask_x, mask_y, 'ok');   
-hold off
-xlim([min_col, max_col]);
-yl = ylim;
-
-% First and last rows to plot
-min_row = min(gy_mat(:));
-max_row = max(gy_mat(:));
-min_col = min(gx_mat(:));
-max_col = max(gx_mat(:));
-
-subplot(3, 1, 2);
-imagesc(gx_mat(:), gy_mat(:), tx_mat_rpc);
-axis image;
-hold on;
-quiver(gx_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
-       gy_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
-       Scale * tx_mat_rpc(1 : Skip_y : end, 1 : Skip_x : end), ...
-       Scale * ty_mat_rpc(1 : Skip_y : end, 1 : Skip_x : end), ...
-       0, 'black', 'linewidth', 1.5);
-plot(mask_x, mask_y, 'ok');   
-hold off
-xlim([min_col, max_col]);
-ylim(yl);
-
-subplot(3, 1, 3);
-% First and last rows to plot
-min_row = min(gy_mat(:));
-max_row = max(gy_mat(:));
-min_col = min(gx_mat(:));
-max_col = max(gx_mat(:));
-
 % subplot(3, 1, 1);
-imagesc(gx_mat(:), gy_mat(:), tx_mat_apc);
-axis image;
-hold on;
-quiver(gx_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
-       gy_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
-       Scale * tx_mat_apc(1 : Skip_y : end, 1 : Skip_x : end), ...
-       Scale * ty_mat_apc(1 : Skip_y : end, 1 : Skip_x : end), ...
-       0, 'black', 'linewidth', 1.5);
-plot(mask_x, mask_y, 'ok');   
-hold off
-xlim([min_col, max_col]);
-ylim(yl);
-
-
-
-
-
-
-
-
-% subplot(3, 1, 1);
-% % surf(scc_plot ./ max(scc_plot(:)), 'linewidth', 1E-5);
-% mesh(scc_plot ./ max(scc_plot(:)), 'linewidth', lw_mesh, 'edgecolor', 'black');
-% axis square;
-% xlim([1, region_width / Skip]);
-% ylim([1, region_height / Skip]);
-% zlim([0, 1.1]);
-% axis off;
-% % set(gca, 'units', 'pixels');
-% p1 = get(gca, 'position');
-% set(gca, 'view', gv);
+% imagesc(gx_mat(:), gy_mat(:), tx_mat_scc);
+% axis image;
+% hold on;
+% quiver(gx_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
+%        gy_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
+%        Scale * tx_mat_scc(1 : Skip_y : end, 1 : Skip_x : end), ...
+%        Scale * ty_mat_scc(1 : Skip_y : end, 1 : Skip_x : end), ...
+%        0, 'black', 'linewidth', 1.5);
+% plot(mask_x, mask_y, 'ok');   
+% hold off
+% xlim([min_col, max_col]);
+% yl = ylim;
+% 
+% % First and last rows to plot
+% min_row = min(gy_mat(:));
+% max_row = max(gy_mat(:));
+% min_col = min(gx_mat(:));
+% max_col = max(gx_mat(:));
 % 
 % subplot(3, 1, 2);
-% % surf(rpc_plot ./ max(rpc_plot(:)), 'linewidth', 1E-5);
-% mesh(rpc_plot ./ max(rpc_plot(:)), 'linewidth', lw_mesh, 'edgecolor', 'black');
-% axis square;
-% xlim([1, region_width / Skip]);
-% ylim([1, region_height / Skip]);
-% zlim([0, 1.1]);
-% axis off;
-% % set(gca, 'units', 'pixels');
-% p2 = get(gca, 'position');
-% p2(2) = p1(2) - p1(4) + dx_plot;
-% % set(gca, 'position', p2);
-% set(gca, 'view', gv);
-% 
+% imagesc(gx_mat(:), gy_mat(:), tx_mat_rpc);
+% axis image;
+% hold on;
+% quiver(gx_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
+%        gy_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
+%        Scale * tx_mat_rpc(1 : Skip_y : end, 1 : Skip_x : end), ...
+%        Scale * ty_mat_rpc(1 : Skip_y : end, 1 : Skip_x : end), ...
+%        0, 'black', 'linewidth', 1.5);
+% plot(mask_x, mask_y, 'ok');   
+% hold off
+% xlim([min_col, max_col]);
+% ylim(yl);
 % 
 % subplot(3, 1, 3);
-% % surf(apc_plot ./ max(apc_plot(:)), 'linewidth', 1E-5);
-% mesh(apc_plot ./ max(apc_plot(:)), 'linewidth', lw_mesh, 'edgecolor', 'black');
-% axis square;
-% xlim([1, region_width / Skip]);
-% ylim([1, region_height / Skip]);
-% zlim([0, 1.1]);
-% axis off;
-% % set(gca, 'units', 'pixels');
-% p3 = get(gca, 'position');
-% p3(2) = p2(2) - p2(4) + dx_plot;
-% % set(gca, 'position', p3);
-% set(gca, 'view', gv);
-% set(gcf, 'color', 'white');
+% % First and last rows to plot
+% min_row = min(gy_mat(:));
+% max_row = max(gy_mat(:));
+% min_col = min(gx_mat(:));
+% max_col = max(gx_mat(:));
+% 
+% % subplot(3, 1, 1);
+% imagesc(gx_mat(:), gy_mat(:), tx_mat_apc);
+% axis image;
+% hold on;
+% quiver(gx_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
+%        gy_mat(1 : Skip_y : end, 1 : Skip_x : end), ...
+%        Scale * tx_mat_apc(1 : Skip_y : end, 1 : Skip_x : end), ...
+%        Scale * ty_mat_apc(1 : Skip_y : end, 1 : Skip_x : end), ...
+%        0, 'black', 'linewidth', 1.5);
+% plot(mask_x, mask_y, 'ok');   
+% hold off
+% xlim([min_col, max_col]);
+% ylim(yl);
+% 
+
+
+
+
+scc_plot = scc_ens(1 : Skip_y : end, 1 : Skip_x : end);
+rpc_plot = rpc_ens(1 : Skip_y : end, 1 : Skip_x : end);
+apc_plot = apc_plane(1 : Skip_y : end, 1 : Skip_x : end);
+
+subplot(3, 1, 1);
+% surf(scc_plot ./ max(scc_plot(:)), 'linewidth', 1E-5);
+mesh(scc_plot ./ max(scc_plot(:)), 'linewidth', lw_mesh, 'edgecolor', 'black');
+axis square;
+xlim([1, region_width / Skip_x]);
+ylim([1, region_height / Skip_y]);
+zlim([0, 1.1]);
+axis off;
+% set(gca, 'units', 'pixels');
+p1 = get(gca, 'position');
+set(gca, 'view', gv);
+
+subplot(3, 1, 2);
+% surf(rpc_plot ./ max(rpc_plot(:)), 'linewidth', 1E-5);
+mesh(rpc_plot ./ max(rpc_plot(:)), 'linewidth', lw_mesh, 'edgecolor', 'black');
+axis square;
+xlim([1, region_width / Skip_x]);
+ylim([1, region_height / Skip_y]);
+zlim([0, 1.1]);
+axis off;
+% set(gca, 'units', 'pixels');
+p2 = get(gca, 'position');
+p2(2) = p1(2) - p1(4) + dx_plot;
+% set(gca, 'position', p2);
+set(gca, 'view', gv);
+
+
+subplot(3, 1, 3);
+% surf(apc_plot ./ max(apc_plot(:)), 'linewidth', 1E-5);
+mesh(apc_plot ./ max(apc_plot(:)), 'linewidth', lw_mesh, 'edgecolor', 'black');
+axis square;
+xlim([1, region_width / Skip_x]);
+ylim([1, region_height / Skip_y]);
+zlim([0, 1.1]);
+axis off;
+% set(gca, 'units', 'pixels');
+p3 = get(gca, 'position');
+p3(2) = p2(2) - p2(4) + dx_plot;
+% set(gca, 'position', p3);
+set(gca, 'view', gv);
+set(gcf, 'color', 'white');
 
 
 % =======

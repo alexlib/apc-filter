@@ -158,7 +158,11 @@ if isempty(MASK)
     % Make a mask of all ones.
     MASK = ones(image_height, image_width);
 end
+
+spc_ens_norm_old = zeros(region_height, region_width);
     
+mad_ens = zeros(num_images);
+
 % Loop over all the images.
 for p = 1 : num_images
     
@@ -216,7 +220,8 @@ for p = 1 : num_images
              
             % Add the cross correlation to the ensemble array.
             spectral_correlation_array(:, :, k) = ...
-                spectral_correlation_array(:, :, k) + complex_cross_correlation_current;               
+                spectral_correlation_array(:, :, k) + complex_cross_correlation_current;          
+                        
         end
     end % End (for k = 1 : num_regions)
 
